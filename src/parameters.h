@@ -3,28 +3,28 @@
 
 #include <stdint.h>
 
-typedef struct
+struct ecu_params
 {
-	uint8_t ldata;
-	uint8_t vsp;
-	uint8_t tps;
-	uint8_t advs;
-	uint8_t isc;
-	uint8_t rtrd;
-	int16_t tw;
-	uint16_t erev;
-	float wgc;
+	uint8_t load;
+	uint8_t vehicle_speed;
+	uint8_t throttle_percentage;
+	uint8_t ignition_timing;
+	uint8_t iac;
+	uint8_t timing_correction;
+	int16_t coolant_temp;
+	uint16_t engine_speed;
+	float boost_solinoid;
 	float barop;
-	float vb;
-	float qa;
-	float thv;
-	float tim;
+	float battery_voltage;
+	float airflow;
+	float throttle_voltage;
+	float injector_pw;
 	float manip;
-	float o2r;
-	float alphar;
-} ecu_params;
+	float o2_voltage;
+	float fuel_trim;
+};
 
-typedef struct
+struct input_switches
 {
     uint8_t ignition : 1;
     uint8_t auto_trans : 1;
@@ -34,9 +34,9 @@ typedef struct
     uint8_t neutral : 1;
     uint8_t park : 1;
     uint8_t california : 1;
-} input_switches;
+};
 
-typedef struct
+struct io_switches
 {
     uint8_t idle_sw : 1;
     uint8_t ac_sw : 1;
@@ -46,9 +46,9 @@ typedef struct
     uint8_t purge_valve : 1;
     uint8_t pinging : 1;
     uint8_t press_exch : 1;
-} io_switches;
+};
 
-typedef struct
+struct trouble_code_one
 {
     uint8_t crank : 1;
     uint8_t starter : 1;
@@ -58,9 +58,9 @@ typedef struct
     uint8_t inj_3 : 1;
     uint8_t inj_4 : 1;
     uint8_t unused_bit_7 : 1;
-} trouble_code_one;
+};
 
-typedef struct
+struct trouble_code_two
 {
     uint8_t temp : 1;
     uint8_t knock : 1;
@@ -70,9 +70,9 @@ typedef struct
     uint8_t oxygen : 1;
     uint8_t vss : 1;
     uint8_t purge : 1;
-} trouble_code_two;
+};
 
-typedef struct
+struct trouble_code_three
 {
     uint8_t fuel_trim : 1;
     uint8_t idle_sw : 1;
@@ -82,14 +82,14 @@ typedef struct
     uint8_t wrong_maf : 1;
     uint8_t neutral_sw : 1;
     uint8_t parking_sw : 1;
-} trouble_code_three;
+};
 
 extern const uint8_t coolant_lookup_table[];
-extern ecu_params ecu_parameters;
-extern input_switches status;
-extern io_switches status0;
-extern trouble_code_one status1;
-extern trouble_code_two status2;
-extern trouble_code_three status3;
+extern struct ecu_params parameters;
+extern struct input_switches status0;
+extern struct io_switches status1;
+extern struct trouble_code_one status2;
+extern struct trouble_code_two status3;
+extern struct trouble_code_three status4;
 
 #endif
