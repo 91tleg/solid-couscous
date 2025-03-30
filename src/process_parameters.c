@@ -1,29 +1,33 @@
 #include "process_parameters.h"
 
-uint16_t read_battery_voltage(void)
+float read_battery_voltage(void)
 {
     uint8_t value = read_data_from_address(BATTERY_VOLTAGE_ADDR);
-    uint16_t result;
+    float result;
 
     __asm__ volatile(
-        "mov a2, %1\n"         // Move value into a2 (no need to load)
-        "movi a3, 8\n"         // Load 8 into a3
+        "mov a2, %1\n"         // Move value into a2
+        "movi a3, 8\n"         // Move 8 into a3
         "extui a2, a2, 0, 8\n" // Extend a2 to 16 bits
-        "mull a2, a2, a3\n"    // Multiply a2 by a3 (a2 * 8)
-        "mov %0, a2\n"         // Store result in output
-        : "=r"(result)         // Output
+        "mull a2, a2, a3\n"    // Multiply a2 by a3
+        "ufloat.s f0, a2, 1\n"
+        "movi a2, 100\n"
+        "ufloat.s f1, a2, 1\n"
+        "divn.s f0, f0, f1\n"
+        "mov.s %0, f0\n"         // Store result in output
+        : "=f"(result)         // Output
         : "r"(value)           // Input
-        : "a2", "a3");         // Clobbered registers
+        : "a2", "a3", "f0", "f1");         // Clobbered registers
     return result;             // Need to /100
 }
 
-uint8_t read_speed(void)
+uint8_t read_vehicle_speed(void)
 {
     uint8_t value = read_data_from_address(SPEED_ADDR);
     uint8_t result;
 
     __asm__ volatile(
-        "mov a2, %1\n"         // Load value into a2
+        "mov a2, %1\n"
         "extui a2, a2, 0, 8\n" // Extend a2 to 16 bits
         "movi a3, 10\n"        // Load 10 into a3
         "mull a2, a2, a3\n"    // Multiply a2 by a3
@@ -36,7 +40,7 @@ uint8_t read_speed(void)
     return result;
 }
 
-uint16_t read_rpm(void)
+uint16_t read_engine_speed(void)
 {
     uint8_t value = read_data_from_address(RPM_ADDR);
     uint16_t result;
@@ -44,7 +48,7 @@ uint16_t read_rpm(void)
     __asm__ volatile(
         "mov a2, %1\n"
         "movi a3, 25\n"
-        "extui a2, a2, 0, 8\n" // Extend a2 to 16 bits
+        "extui a2, a2, 0, 8\n"
         "mull a2, a2, a3\n"
         "mov %0, a2\n"
         : "=r"(result)
@@ -59,7 +63,8 @@ int16_t read_coolant_temp(void)
     int16_t result;
 
     __asm__ volatile(
-        "mov a2, %1\n"      // Load value from lookup table
+        "mov a2, %1\n"          // Load value from lookup table
+        "extui a2, a2, 0, 8\n"
         "movi a3, 14\n"         // Load 14 into a3
         "sub a3, a2, a3\n"      // a3 = a2 - 14
         "movi a4, 0\n"          // Load 0 into a4
@@ -82,9 +87,21 @@ int16_t read_coolant_temp(void)
     return result;
 }
 
-void read_airflow(void)
+uint16_t read_airflow(void)
 {
-    // ecu_parameters.qa = (float)(read_data_from_address(AIRFLOW_SENSOR_ADDR)) / 50;
+    uint8_t value = read_data_from_address(AIRFLOW_SENSOR_ADDR);
+    uint16_t result;
+    __asm__ volatile(
+        "mov a2, %1\n"
+        "extui a2, a2, 0, 8\n"
+        "movi a3, 2\n"
+        "mull a2, a2, a3\n"
+        "mov %0, a2\n"
+        : "=r"(result)
+        : "r"(value)
+        : "a2", "a3"
+    );
+    return result; // Need /100
 }
 
 uint8_t read_throttle_percentage(void)
@@ -94,6 +111,7 @@ uint8_t read_throttle_percentage(void)
 
     __asm__ volatile(
         "mov a2, %1\n"
+        "extui a2, a2, 0, 8\n"
         "movi a3, 100\n"
         "mull a2, a2, a3\n"
         "movi a3, 256\n"
@@ -103,36 +121,70 @@ uint8_t read_throttle_percentage(void)
         : "r"(value)
         : "a2", "a3");
     return result;
-    // ecu_parameters.tps = read_data_from_address(THROTTLE_ADDR) * 100 / 256;
 }
 
-void read_throttle_signal(void)
+uint16_t read_throttle_signal(void)
 {
+    uint8_t value = read_data_from_address(BOOST_SOLENOID_ADDR);
+    uint16_t result = 0;
+
+    return result;
     // ecu_parameters.thv = (float)(read_data_from_address(THROTTLE_ADDR)) * 100 / 256;
 }
 
-void read_manifold_pressure(void)
+int16_t read_manifold_pressure(void)
 {
+    uint8_t value = read_data_from_address(BOOST_SOLENOID_ADDR);
+    int16_t result = 0;
+
+    return result;
     // ecu_parameters.manip = (float)(read_data_from_address(MANIFOLD_PRESSURE_ADDR)) / 0.128 - 1060;
 }
 
-void read_boost_control_duty_cycle(void)
+uint16_t read_boost_control_duty_cycle(void)
 {
-    // ecu_parameters.wgc = (float)(read_data_from_address(BOOST_SOLENOID_ADDR) * 100) / 256;
-}
-void read_ignition_timing(void)
-{
-    // ecu_parameters.advs = read_data_from_address(IGNITION_ADVANCE_ADDR);
+    uint8_t value = read_data_from_address(BOOST_SOLENOID_ADDR);
+    uint16_t result;
+    __asm__ volatile(
+        "mov a2, %1\n"
+        "extui a2, a2, 0, 8\n"
+        "movi a3, 39\n"
+        "mull a2, a2, a3\n"
+        "mov %0, a2\n"
+        : "=r"(result)
+        : "r"(value)
+        : "a2", "a3"
+    );
+    return result;  // Need /100
 }
 
-void read_load(void)
+uint8_t read_ignition_timing(void)
 {
-    // ecu_parameters.ldata = read_data_from_address(ENGINE_LOAD_ADDR);
+    uint8_t value =  read_data_from_address(IGNITION_ADVANCE_ADDR);
+    return value;
 }
 
-void read_injector_pulse_width(void)
+uint8_t read_load(void)
 {
-    // ecu_parameters.tim = (float)(read_data_from_address(INJECTOR_PULSE_WIDTH_ADDR)) * 2.048;
+    uint8_t value = read_data_from_address(ENGINE_LOAD_ADDR);
+    return value;
+}
+
+uint16_t read_injector_pulse_width(void)
+{
+    uint8_t value = read_data_from_address(INJECTOR_PULSE_WIDTH_ADDR);
+    uint16_t result;
+
+    __asm__ volatile(
+        "mov a2, %1\n"
+        "extui a2, a2, 0, 8\n"
+        "movi a3, 2048\n"
+        "mull a2, a2, a3\n"
+        "mov %0, a2\n"
+        : "=r"(result)
+        : "r"(value)
+        : "a2", "a3");
+    return result;  // Need /1000
 }
 
 uint8_t read_iacv_duty_cycle(void)
@@ -144,7 +196,7 @@ uint8_t read_iacv_duty_cycle(void)
         "mov a2, %1\n"
         "movi a3, 2\n"
         "quou a2, a2, a3\n"
-        "mov %0, a2;"
+        "mov %0, a2\n;"
         : "=r"(result)
         : "r"(value)
         : "a2", "a3");
@@ -155,24 +207,53 @@ uint8_t read_o2_signal(void)
 {
     uint8_t value = read_data_from_address(O2_AVERAGE_ADDR);
     return value; // Need /100
-    // ecu_parameters.o2r = (float)(read_data_from_address(O2_AVERAGE_ADDR)) / 100;
 }
 
 uint8_t read_timing_correction(void)
 {
     uint8_t value = read_data_from_address(TIMING_CORRECTION_ADDR);
     return value;
-    // ecu_parameters.rtrd = read_data_from_address(TIMING_CORRECTION_ADDR);
 }
 
-void read_fuel_trim(void)
+int16_t read_fuel_trim(void)
 {
-    // ecu_parameters.alphar = (float)(read_data_from_address(AF_CORRECTION_ADDR) - 128) / 1.28;
+    uint8_t value = read_data_from_address(TIMING_CORRECTION_ADDR);
+    int16_t result;
+
+    __asm__ volatile(
+        "mov a2, %1\n"
+        "extui a2, a2, 0, 8\n"
+        "movi a3, 128\n"
+        "sub a2, a2, a3\n"
+        "movi a3, 78\n"
+        "mull a2, a2, a3\n"
+        "mov %0, a2\n"
+        : "=r"(result)
+        : "r"(value)
+        : "a2", "a3");
+    return result; // Need /100
 }
 
-void read_atmosphere_pressure(void)
+float read_atmosphere_pressure(void)
 {
-    // ecu_parameters.barop = (float)(930 - read_data_from_address(ATMOSPHERIC_PRESSURE_ADDR)) * 3.09;
+    uint8_t value = read_data_from_address(ATMOSPHERIC_PRESSURE_ADDR);
+    float result;
+
+    __asm__ volatile(
+        "mov a2, %1\n"
+        "ufloat.s f0, a2, 1\n"     // Convert a2 to float and store in f0
+        "movi a2, 930\n"
+        "ufloat.s f1, a2, 1\n" 
+        "sub.s f0, f1, f0\n"       // f0 = f1 - f0
+        "movi a2, 309\n"           // Move 309 into a2
+        "ufloat.s f2, a2, 1\n"     // Convert integer 309 to float in f2
+        "mul.s f0, f0, f2\n"       // f0 = f0 * f2 (f0 * 3.09)
+        "mov.s %0, f0\n"
+        : "=f"(result)
+        : "r"(value)
+        : "a2", "f0", "f1", "f2"
+    );
+    return result;
 }
 
 void read_input_switches(void)
@@ -224,83 +305,238 @@ void read_input_switches(void)
         : "a2", "a3", "a4", "memory");
 }
 
-void read_io_switches(void)
+void read_inout_switches(void)
 {
-    /*
-    uint8_t value = read_data_from_address(IO_SWITCHES_ADDR);
-    status0.idle_sw = (value & (1 << 7)) ? 1 : 0;
-    status0.ac_sw = (value & (1 << 6)) ? 1 : 0;
-    status0.ac_relay = (value & (1 << 5)) ? 1 : 0;
-    status0.rad_fan = (value & (1 << 4)) ? 1 : 0;
-    status0.fuel_pump = (value & (1 << 3)) ? 1 : 0;
-    status0.purge_valve = (value & (1 << 2)) ? 1 : 0;
-    status0.pinging = (value & (1 << 1)) ? 1 : 0;
-    status0.press_exch = (value & (1 << 0)) ? 1 : 0;
-}*/}
+    uint8_t value = read_data_from_address(INOUT_SWITCHES_ADDR);
 
-    void read_trouble_code_one(uint16_t addr)
-    {
-        uint8_t value = read_data_from_address(addr);
-        status2.crank = (value & (1 << 7)) ? 1 : 0;
-        status2.starter = (value & (1 << 6)) ? 1 : 0;
-        status2.cam = (value & (1 << 5)) ? 1 : 0;
-        status2.inj_1 = (value & (1 << 4)) ? 1 : 0;
-        status2.inj_2 = (value & (1 << 3)) ? 1 : 0;
-        status2.inj_3 = (value & (1 << 2)) ? 1 : 0;
-        status2.inj_4 = (value & (1 << 1)) ? 1 : 0;
-    }
+    __asm__ volatile(
+        "mov a2, %0\n"
+        "movi a4, 1\n"
 
-    void read_active_trouble_code_one(void)
-    {
-        read_trouble_code_one(ACTIVE_TROUBLE_CODE_ONE_ADDR);
-    }
+        // Idle switch (bit 7)
+        "slli a3, a2, 7\n" // Shift a2 right by 7
+        "and a3, a3, a4\n" // Isolate the bit
+        "mov %1, a3\n"
 
-    void read_stored_trouble_code_one(void)
-    {
-        read_trouble_code_one(STORED_TROUBLE_CODE_THREE_ADDR);
-    }
+        // AC switch (bit 6)
+        "slli a3, a2, 6\n" // Shift a2 right by 6
+        "and a3, a3, a4\n"
+        "mov %2, a3\n"
 
-    void read_trouble_code_two(uint16_t addr)
-    {
-        uint8_t value = read_data_from_address(addr);
-        status3.temp = (value & (1 << 7)) ? 1 : 0;
-        status3.knock = (value & (1 << 6)) ? 1 : 0;
-        status3.maf = (value & (1 << 5)) ? 1 : 0;
-        status3.iacv = (value & (1 << 4)) ? 1 : 0;
-        status3.tps = (value & (1 << 3)) ? 1 : 0;
-        status3.oxygen = (value & (1 << 2)) ? 1 : 0;
-        status3.vss = (value & (1 << 1)) ? 1 : 0;
-        status3.purge = (value & (1 << 0)) ? 1 : 0;
-    }
+        // AC relay (bit 5)
+        "slli a3, a2, 5\n" // Shift a2 right by 5
+        "and a3, a3, a4\n"
+        "mov %3, a3\n"
 
-    void read_active_trouble_code_two(void)
-    {
-        read_trouble_code_two(ACTIVE_TROUBLE_CODE_TWO_ADDR);
-    }
+        // Rad fan (bit 4)
+        "slli a3, a2, 4\n" // Shift a2 right by 4
+        "and a3, a3, a4\n"
+        "mov %4, a3\n"
 
-    void read_stored_trouble_code_two(void)
-    {
-        read_trouble_code_two(STORED_TROUBLE_CODE_TWO_ADDR);
-    }
+        // Fuel pump (bit 3)
+        "slli a3, a2, 3\n" // Shift a2 right by 2
+        "and a3, a3, a4\n"
+        "mov %5, a3\n"
 
-    void read_trouble_code_three(uint16_t addr)
-    {
-        uint8_t value = read_data_from_address(addr);
-        status4.fuel_trim = (value & (1 << 7)) ? 1 : 0;
-        status4.idle_sw = (value & (1 << 6)) ? 1 : 0;
-        status4.wgc = (value & (1 << 4)) ? 1 : 0;
-        status4.baro = (value & (1 << 3)) ? 1 : 0;
-        status4.wrong_maf = (value & (1 << 2)) ? 1 : 0;
-        status4.neutral_sw = (value & (1 << 1)) ? 1 : 0;
-        status4.parking_sw = (value & (1 << 0)) ? 1 : 0;
-    }
+        // Purge valve (bit 2)
+        "slli a3, a2, 2\n" // Shift a2 right by 2
+        "and a3, a3, a4\n"
+        "mov %6, a3\n"
 
-    void read_active_trouble_code_three(void)
-    {
-        read_trouble_code_three(ACTIVE_TROUBLE_CODE_THREE_ADDR);
-    }
+        // Pinging (bit 1)
+        "slli a3, a2, 1\n" // Shift a2 right by 1
+        "and a3, a3, a4\n"
+        "mov %7, a3\n"
 
-    void read_stored_trouble_code_three(void)
-    {
-        read_trouble_code_three(STORED_TROUBLE_CODE_THREE_ADDR);
-    }
+        // Pressure exchange (bit 0)
+        "slli a3, a2, 0\n" // Shift a2 right by 0
+        "and a3, a3, a4\n"
+        "mov %8, a3\n"
+
+        : "=r"(status1.idle_sw), "=r"(status1.ac_sw), "=r"(status1.ac_relay), "=r"(status1.rad_fan), 
+        "=r"(status1.fuel_pump), "=r"(status1.purge_valve), "=r"(status1.pinging), "=r"(status1.press_exch)
+        : "r"(value)
+        : "a2", "a3", "a4", "memory");
+}
+
+void read_trouble_code_one(uint16_t addr)
+{
+    uint8_t value = read_data_from_address(addr);
+
+    __asm__ volatile(
+        "mov a2, %0\n"
+        "movi a4, 1\n"
+
+        // Crank (bit 7)
+        "slli a3, a2, 7\n" // Shift a2 right by 7
+        "and a3, a3, a4\n" // Isolate the bit
+        "mov %1, a3\n"
+
+        // Starter (bit 6)
+        "slli a3, a2, 6\n" // Shift a2 right by 6
+        "and a3, a3, a4\n"
+        "mov %2, a3\n"
+
+        // Cam (bit 5)
+        "slli a3, a2, 5\n" // Shift a2 right by 5
+        "and a3, a3, a4\n"
+        "mov %3, a3\n"
+
+        // Injector one (bit 4)
+        "slli a3, a2, 4\n" // Shift a2 right by 4
+        "and a3, a3, a4\n"
+        "mov %4, a3\n"
+
+        // Injector two (bit 3)
+        "slli a3, a2, 3\n" // Shift a2 right by 2
+        "and a3, a3, a4\n"
+        "mov %5, a3\n"
+
+        // Injector three (bit 2)
+        "slli a3, a2, 2\n" // Shift a2 right by 2
+        "and a3, a3, a4\n"
+        "mov %6, a3\n"
+
+        // Injector four (bit 1)
+        "slli a3, a2, 1\n" // Shift a2 right by 1
+        "and a3, a3, a4\n"
+        "mov %7, a3\n"
+
+        : "=r"(status2.crank), "=r"(status2.starter), "=r"(status2.cam), "=r"(status2.inj_1), 
+        "=r"(status2.inj_2), "=r"(status2.inj_3), "=r"(status2.inj_4)
+        : "r"(value)
+        : "a2", "a3", "a4", "memory");
+}
+
+void read_active_trouble_code_one(void)
+{
+    read_trouble_code_one(ACTIVE_TROUBLE_CODE_ONE_ADDR);
+}
+
+void read_stored_trouble_code_one(void)
+{
+    read_trouble_code_one(STORED_TROUBLE_CODE_THREE_ADDR);
+}
+
+void read_trouble_code_two(uint16_t addr)
+{
+    uint8_t value = read_data_from_address(addr);
+
+    __asm__ volatile(
+        "mov a2, %0\n"
+        "movi a4, 1\n"
+
+        // Temp (bit 7)
+        "slli a3, a2, 7\n" // Shift a2 right by 7
+        "and a3, a3, a4\n" // Isolate the bit
+        "mov %1, a3\n"
+
+        // Knock (bit 6)
+        "slli a3, a2, 6\n" // Shift a2 right by 6
+        "and a3, a3, a4\n"
+        "mov %2, a3\n"
+
+        // MAF (bit 5)
+        "slli a3, a2, 5\n" // Shift a2 right by 5
+        "and a3, a3, a4\n"
+        "mov %3, a3\n"
+
+        // IAC (bit 4)
+        "slli a3, a2, 4\n" // Shift a2 right by 4
+        "and a3, a3, a4\n"
+        "mov %4, a3\n"
+
+        // TPS (bit 3)
+        "slli a3, a2, 3\n" // Shift a2 right by 2
+        "and a3, a3, a4\n"
+        "mov %5, a3\n"
+
+        // O2 (bit 2)
+        "slli a3, a2, 2\n" // Shift a2 right by 2
+        "and a3, a3, a4\n"
+        "mov %6, a3\n"
+
+        // VSS (bit 1)
+        "slli a3, a2, 1\n" // Shift a2 right by 1
+        "and a3, a3, a4\n"
+        "mov %7, a3\n"
+
+        // Purge (bit 0)
+        "slli a3, a2, 0\n" // Shift a2 right by 0
+        "and a3, a3, a4\n"
+        "mov %8, a3\n"
+
+        : "=r"(status3.temp), "=r"(status3.knock), "=r"(status3.maf), "=r"(status3.iacv), 
+        "=r"(status3.tps), "=r"(status3.oxygen), "=r"(status3.vss), "=r"(status3.purge)
+        : "r"(value)
+        : "a2", "a3", "a4", "memory");
+}
+
+void read_active_trouble_code_two(void)
+{
+    read_trouble_code_two(ACTIVE_TROUBLE_CODE_TWO_ADDR);
+}
+
+void read_stored_trouble_code_two(void)
+{
+    read_trouble_code_two(STORED_TROUBLE_CODE_TWO_ADDR);
+}
+
+void read_trouble_code_three(uint16_t addr)
+{
+    uint8_t value = read_data_from_address(addr);
+
+    __asm__ volatile(
+        "mov a2, %0\n"
+        "movi a4, 1\n"
+
+        // Fuel trim (bit 7)
+        "slli a3, a2, 7\n" // Shift a2 right by 7
+        "and a3, a3, a4\n" // Isolate the bit
+        "mov %1, a3\n"
+
+        // Idle switch (bit 6)
+        "slli a3, a2, 6\n" // Shift a2 right by 6
+        "and a3, a3, a4\n"
+        "mov %2, a3\n"
+
+        // WGC (bit 4)
+        "slli a3, a2, 4\n" // Shift a2 right by 4
+        "and a3, a3, a4\n"
+        "mov %3, a3\n"
+
+        // Baro (bit 3)
+        "slli a3, a2, 3\n" // Shift a2 right by 2
+        "and a3, a3, a4\n"
+        "mov %4, a3\n"
+
+        // Wrong MAF (bit 2)
+        "slli a3, a2, 2\n" // Shift a2 right by 2
+        "and a3, a3, a4\n"
+        "mov %5, a3\n"
+
+        // Neutral switch (bit 1)
+        "slli a3, a2, 1\n" // Shift a2 right by 1
+        "and a3, a3, a4\n"
+        "mov %6, a3\n"
+
+        // Parking switch (bit 0)
+        "slli a3, a2, 0\n" // Shift a2 right by 0
+        "and a3, a3, a4\n"
+        "mov %7, a3\n"
+
+        : "=r"(status4.fuel_trim), "=r"(status4.idle_sw), "=r"(status4.wgc), "=r"(status4.baro), 
+        "=r"(status4.wrong_maf), "=r"(status4.neutral_sw), "=r"(status4.parking_sw)
+        : "r"(value)
+        : "a2", "a3", "a4", "memory");
+}
+
+void read_active_trouble_code_three(void)
+{
+    read_trouble_code_three(ACTIVE_TROUBLE_CODE_THREE_ADDR);
+}
+
+void read_stored_trouble_code_three(void)
+{
+    read_trouble_code_three(STORED_TROUBLE_CODE_THREE_ADDR);
+}
