@@ -18,17 +18,18 @@ typedef enum
     OCS_DOWN,    // Button pressed
     OCS_UP,      // Button released
     OCS_COUNT,   // Count the number of clicks
-    OCS_PRESS,   // Long press detected
+    OCS_PRESS,   // button is hold down
     OCS_PRESSEND // Button released after long press
-} button_state_t;
+} button_state_e;
 
-void button_task(void *pvParameter);
-void reset_button_state(void);
-int debounce(int value);
+typedef enum
+{
+    STATE_EVENT_BUTTON_PRESS,
+    STATE_EVENT_BUTTON_LONG_PRESS,
+    STATE_EVENT_BUTTON_DOUBLE_PRESS,
+    STATE_EVENT_NONE
+} state_event_e;
 
-extern void (*click_callback)(void);
-extern void (*double_click_callback)(void);
-extern void (*long_press_callback)(void);
-extern void (*long_press_end_callback)(void);
+state_event_e read_state_event(void);
 
 #endif // BUTTON_H
