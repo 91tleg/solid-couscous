@@ -1,8 +1,7 @@
 #include "ssm1.h"
+#include "uart.h"
 
-#include <stdint.h>
-
-void stop_read(void)
+static inline void stop_read(void)
 {
     static const uint8_t stop_command[4] = {0x12, 0x00, 0x00, 0x00};
     uart_write_bytes(UART_NUM, (const char *)stop_command, sizeof(stop_command));
@@ -40,7 +39,7 @@ void get_romid(uint8_t *buffer)
 
 __attribute__((weak)) uint8_t read_data_from_address(uint16_t addr)
 {
-    static uint8_t read_command[4] = {0x78, (uint8_t)(addr >> 8), (uint8_t)(addr & 0xFF), 0x00};
+    uint8_t read_command[4] = {0x78, (uint8_t)(addr >> 8), (uint8_t)(addr & 0xFF), 0x00};
     static uint8_t answer[3] = {0};
 
     uart_write_bytes(UART_NUM, (const char *)read_command, sizeof(read_command));
@@ -64,7 +63,7 @@ __attribute__((weak)) uint8_t read_data_from_address(uint16_t addr)
 
 void send_clear_command(uint16_t addr)
 {
-    static uint8_t clear_command[4] = {0xAA, (uint8_t)(addr >> 8), (uint8_t)(addr & 0xff), 0x00};
+    uint8_t clear_command[4] = {0xAA, (uint8_t)(addr >> 8), (uint8_t)(addr & 0xff), 0x00};
     uart_write_bytes(UART_NUM, (const char *)clear_command, sizeof(clear_command));
     uart_flush(UART_NUM);
 }
