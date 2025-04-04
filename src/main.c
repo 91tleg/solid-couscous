@@ -1,40 +1,39 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "driver/uart.h"
+#include "freertos/queue.h"
+#include "esp_log.h"
 #include "button.h"
 #include "state_machine.h"
+#include "lcd.h"
 
 void app_main()
 {
-    uart_config_t uart_config = {
-        .baud_rate = 9600,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE};
+    ESP_LOGI("MAIN", "Starting application.....");
 
-    gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << BTN_PIN),
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE};
-
-    gpio_config(&io_conf);
+    event_queue = xQueueCreate(5, sizeof(state_event_e));
+    lcd_queue = xQueueCreate(5, sizeof(struct state_machine_data));
 
     xTaskCreate(
-        button_task, 
-        "ButtonTask", 
-        2048, 
-        NULL, 
-        2, 
+        button_task,
+        "ButtonTask",
+        2048,
+        NULL,
+        3,
         NULL);
-    
+
     xTaskCreate(
-        state_machine_task, 
-        "State Machine Task", 
-        2048, 
-        NULL, 
-        5, 
+        state_machine_task,
+        "State Machine Task",
+        2048,
+        NULL,
+        2,
+        NULL);
+
+    xTaskCreate(
+        lcd_task,
+        "Lcd Task",
+        2048,
+        NULL,
+        1,
         NULL);
 }
