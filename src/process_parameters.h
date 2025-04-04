@@ -1,34 +1,33 @@
-#ifndef PARAMETER_MATH_H
-#define PARAMETER_MATH_H
+#ifndef PROCESS_PARAMTERS_H
+#define PROCESS_PARAMTERS_H
 
 #include <stdint.h>
 #include "ssm1.h"
-#include "parameter_addresses.h"
-#include "parameters.h"
+#include "state_machine.h"
 
 /**
  * @brief Reads the battery voltage measured at the ECU.
  * @note Conversion factor: x * 0.08 V
  */
-float read_battery_voltage(void);
+void read_battery_voltage(struct state_machine_data *data);
 
 /**
  * @brief Reads the vehicle speed from the speed sensor.
  * @note Conversion factor: x / 1.6 mph
  */
-uint8_t read_speed(void); 
+void read_vehicle_speed(struct state_machine_data *data); 
 
 /**
  * @brief Reads the engine RPM from the cam and crank angle sensors.
  * @note Conversion factor: x * 25 rev/min
  */
-uint16_t read_rpm(void);
+void read_engine_speed(struct state_machine_data *data);
 
 /**
  * @brief Reads the engine coolant temperature.
  * @note Use lookup table for conversion to degrees Fahrenheit.
  */
-int16_t read_coolant_temp(void);
+void read_coolant_temp(struct state_machine_data *data);
 
 /**
  * @brief Reads the airflow voltage from the mass airflow (MAF) sensor.
@@ -36,29 +35,29 @@ int16_t read_coolant_temp(void);
  * @note Conversion factor: x / 50 V
  *
  */
-void read_airflow(void);
+void read_airflow(struct state_machine_data *data);
 
 /**
  * @brief Reads the throttle opening percentage.
  */
-void read_throttle_percentage(void);
+void read_throttle_percentage(struct state_machine_data *data);
 
 /**
  * @brief Reads the throttle position sensor voltage.
  */
-void read_throttle_signal(void);
+void read_throttle_signal(struct state_machine_data *data);
 
  /**
  * @brief Reads the intake manifold pressure.
  * @note Conversion formula: x / 0.128 - 1060
  */
-void read_manifold_pressure(void);
+void read_manifold_pressure(struct state_machine_data *data);
 
 /**
  * @brief Reads the boost control duty cycle.
  * @note Conversion factor: x / 2.56
  */
-void read_boost_control_duty_cycle(void);
+void read_boost_control_duty_cycle(struct state_machine_data *data);
 
 /**
  * @brief Reads the ignition timing in degrees before top dead center (BTDC).
@@ -67,7 +66,7 @@ void read_boost_control_duty_cycle(void);
  * - Also affected by crankshaft angular velocity fluctuations (engine jerking).
  * @note Conversion factor: x degrees
  */
-void read_ignition_timing(void);
+void read_ignition_timing(struct state_machine_data *data);
 
 /**
  * @brief Reads the engine load in terms of air mass per revolution.
@@ -76,7 +75,7 @@ void read_ignition_timing(void);
  *   (mass / time) / (rev / time) = mass / rev
  * @note Conversion factor: x air mass/rev
  */
-void read_load(void);
+void read_load(struct state_machine_data *data);
 
 /**
  * @brief Reads the injector pulse width (IPW).
@@ -86,7 +85,7 @@ void read_load(void);
  * - Additional corrections applied during conditions like cold starts.
  * @note Conversion factor: x * 0.128 ms
  */
-void read_injector_pulse_width(void);
+void read_injector_pulse_width(struct state_machine_data *data);
 
 /**
  * @brief Reads the idle air control valve (IACV) duty cycle.
@@ -96,7 +95,7 @@ void read_injector_pulse_width(void);
  * - Adjusts for electrical loads, A/C operation, deceleration fuel cut-off, and engine temperature compensation.
  * @note Conversion factor: x / 2 % duty cycle
  */
-uint8_t read_iacv_duty_cycle(void);
+void read_iacv_duty_cycle(struct state_machine_data *data);
 
 /**
  * @brief Reads the oxygen (O2) sensor signal voltage.
@@ -105,7 +104,7 @@ uint8_t read_iacv_duty_cycle(void);
  * - Higher values (~1V) indicate a rich mixture.
  * @note Conversion factor: x / 100 V
  */
-void read_o2_signal(void);
+void read_o2_signal(struct state_machine_data *data);
 
 /**
  * @brief Reads the timing correction adjustment.
@@ -113,7 +112,7 @@ void read_o2_signal(void);
  * - Adjusts dynamically when knock is detected by the knock sensor.
  * @note Conversion factor: x degrees
  */
-void read_timing_correction(void);
+void read_timing_correction(struct state_machine_data *data);
 
 /**
  * @brief Reads the fuel trim adjustment.
@@ -122,48 +121,53 @@ void read_timing_correction(void);
  * - Rich mixtures (0.5V - 0.9V O2 sensor) decrease fuel trim.
  * @note Conversion formula: (x - 128) / 1.28
  */
-void read_fuel_trim(void);
+void read_fuel_trim(struct state_machine_data *data);
 
 /**
  * @brief Reads the atmospheric pressure.
  * @note Conversion formula: x * 1.25 + 500
  */
-void read_atmosphere_pressure(void);
+void read_atmosphere_pressure(struct state_machine_data *data);
 
 /**
  * @brief Reads the input switches.
  */
-void read_input_switches(void);
+void read_input_switches(struct state_machine_data *data);
 
 /**
  * @brief Reads the I/O switches.
  */
-void read_io_switches(void);
+void read_inout_switches(struct state_machine_data *data);
 
 /**
  * @brief Reads an active or stored trouble codes from address.
  * @param addr The memory address of the trouble code.
  */
+
+
+ /*
 void read_trouble_code_one(uint16_t addr);
 void read_trouble_code_two(uint16_t addr);
 void read_trouble_code_three(uint16_t addr);
+*/
+
 
 /**
  * @brief Read the first trouble codes.
  */
-void read_active_trouble_code_one(void);
-void read_stored_trouble_code_one(void);
+void read_active_trouble_code_one(struct state_machine_data *data);
+void read_stored_trouble_code_one(struct state_machine_data *data);
 
 /**
  * @brief Read the second trouble codes.
  */
-void read_active_trouble_code_two(void);
-void read_stored_trouble_code_two(void);
+void read_active_trouble_code_two(struct state_machine_data *data);
+void read_stored_trouble_code_two(struct state_machine_data *data);
 
 /**
  * @brief Read the third trouble codes.
  */
-void read_active_trouble_code_three(void);
-void read_stored_trouble_code_three(void);
+void read_active_trouble_code_three(struct state_machine_data *data);
+void read_stored_trouble_code_three(struct state_machine_data *data);
 
 #endif
