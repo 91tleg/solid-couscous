@@ -1,5 +1,8 @@
 #include "button.h"
-#include "uart.h"
+#include "esp_timer.h"
+#include "esp_log.h"
+#include "driver/gpio.h"
+#include "state_machine.h"
 
 static button_state_e state = OCS_INIT;
 static unsigned long last_debounce_time = 0;
@@ -67,7 +70,7 @@ state_event_e read_state_event(void)
             {
                 state = OCS_PRESSEND;
                 event = STATE_EVENT_BUTTON_LONG_PRESS;
-                printf("Long Press Detected\n");
+                ESP_LOGI("BTN", "Long Press");
             }
             else
             {
@@ -94,12 +97,12 @@ state_event_e read_state_event(void)
             if (click_count == 1)
             {
                 event = STATE_EVENT_BUTTON_PRESS;
-                printf("Single press\n");
+                ESP_LOGI("BTN", "Single Press");
             }
             else if (click_count == 2)
             {
                 event = STATE_EVENT_BUTTON_DOUBLE_PRESS;
-                printf("Double press\n");
+                ESP_LOGI("BTN", "Double Press");
             }
             reset_button_state();
         }
@@ -120,14 +123,19 @@ state_event_e read_state_event(void)
     return event;
 }
 
-void button_task(void *pvParameters)
+void button_task(void *parameters)
 {
     button_init();
     reset_button_state();
+    state_event_e event = STATE_EVENT_NONE;
 
     for (;;)
     {
-        read_state_event();
+        event = read_state_event();
+        if (event != STATE_EVENT_NONE)
+        {
+            xQueueSend(event_queue, (void *)&event, portMAX_DELAY); 
+        }
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
