@@ -4,6 +4,18 @@
 #include "driver/gpio.h"
 #include "state_machine.h"
 
+QueueHandle_t event_queue;
+
+typedef enum
+{
+    OCS_INIT,    // Initial state
+    OCS_DOWN,    // Button pressed
+    OCS_UP,      // Button released
+    OCS_COUNT,   // Count the number of clicks
+    OCS_PRESS,   // button is hold down
+    OCS_PRESSEND // Button released after long press
+} button_state_e;
+
 static button_state_e state = OCS_INIT;
 static unsigned long last_debounce_time = 0;
 static unsigned long press_start_time = 0;
@@ -45,7 +57,7 @@ static void button_init(void)
     gpio_config(&io_conf);
 }
 
-state_event_e read_state_event(void)
+static state_event_e read_state_event(void)
 {
     int button_state = gpio_get_level(BTN_PIN);
     int debounced_state = debounce(button_state);
