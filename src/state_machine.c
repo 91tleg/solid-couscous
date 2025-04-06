@@ -1,19 +1,13 @@
 #include "state_machine.h"
+#include "string.h"
+#include "esp_timer.h"
+#include "esp_log.h"
 #include "defines.h"
-#include "parameters.h"
 #include "process_parameters.h"
 #include "button.h"
+#include "uart.h"
 
-struct state_machine_data
-{
-    state_e state;
-    struct ecu_params parameters;
-    struct input_switches status0;
-    struct io_switches status1;
-    struct trouble_code_one status2;
-    struct trouble_code_two status3;
-    struct trouble_code_three status4;
-};
+QueueHandle_t lcd_queue;
 
 struct state_transition
 {
@@ -82,88 +76,97 @@ static void state_enter(struct state_machine_data *data, state_e from, state_eve
     {
         data->state = to;
     }
-    switch (to)
+    switch (data->state)
     {
     case STATE_ROMID:
-        uint8_t romid_buf[3];
-        get_romid(romid_buf);
+        ESP_LOGI("SM", "ROMID");
+        if(data->parameters.romid[0] == 0x00)
+        {
+            get_romid(data->parameters.romid);
+        }
         break;
     case STATE_BATTERY_V:
-        data->parameters.battery_voltage = read_battery_voltage();
+        ESP_LOGI("SM", "BATV");
+        read_battery_voltage(data);
         break;
     case STATE_VEHICLE_SPEED:
-        data->parameters.vehicle_speed = read_vehicle_speed();
+        ESP_LOGI("SM", "VSPD");
+        read_vehicle_speed(data);
         break;
     case STATE_ENGINE_SPEED:
-        data->parameters.engine_speed = read_engine_speed();
+        ESP_LOGI("SM", "ESPD");
+        read_engine_speed(data);
         break;
     case STATE_COOLANT_TEMP:
-        data->parameters.coolant_temp = read_coolant_temp();
+        ESP_LOGI("SM", "COOLANT");
+        read_coolant_temp(data);
         break;
     case STATE_AIRFLOW:
-        data->parameters.airflow = read_airflow();
+        ESP_LOGI("SM", "MAF");
+        read_airflow(data);
         break;
     case STATE_THROTTLE:
-        data->parameters.throttle_percentage = read_throttle_percentage();
+        read_throttle_percentage(data);
         break;
     case STATE_THROTTLE_V:
-        data->parameters.throttle_voltage = read_throttle_signal();
+        read_throttle_signal(data);
         break;
     case STATE_MANIP:
-        data->parameters.manip = read_manifold_pressure();
+        read_manifold_pressure(data);
         break;
     case STATE_BOOST_SOLINOID:
-        data->parameters.boost_solenoid = read_boost_control_duty_cycle();
+        read_boost_control_duty_cycle(data);
         break;
     case STATE_IGNITION_TIMING:
-        data->parameters.ignition_timing = read_ignition_timing();
+        read_ignition_timing(data);
         break;
     case STATE_LOAD:
-        data->parameters.load = read_load();
+        read_load(data);
         break;
     case STATE_INJECTOR_PW:
-        data->parameters.injector_pw = read_injector_pulse_width();
+        read_injector_pulse_width(data);
         break;
     case STATE_IAC:
-        data->parameters.iac = read_iacv_duty_cycle();
+        read_iacv_duty_cycle(data);
         break;
     case STATE_O2_V:
-        data->parameters.o2_voltage = read_o2_signal();
+        read_o2_signal(data);
         break;
     case STATE_TIMING_CORRECTION:
-        data->parameters.timing_correction = read_timing_correction();
+        read_timing_correction(data);
         break;
     case STATE_FUEL_TRIM:
-        data->parameters.fuel_trim = read_fuel_trim();
+        read_fuel_trim(data);
         break;
     case STATE_BAROP:
-        data->parameters.barop = read_atmosphere_pressure();
+        read_atmosphere_pressure(data);
         break;
     case STATE_INPUT_SWITCHES:
-        read_input_switches();
+        read_input_switches(data);
         break;
     case STATE_INOUT_SWITCHES:
-        read_inout_switches();
+        read_inout_switches(data);
         break;
     case STATE_ACTIVE_CODE_ONE:
-        read_active_trouble_code_one();
+        read_active_trouble_code_one(data);
         break;
     case STATE_ACTIVE_CODE_TWO:
-        read_active_trouble_code_two();
+        read_active_trouble_code_two(data);
         break;
     case STATE_ACTIVE_CODE_THREE:
-        read_active_trouble_code_three();
+        read_active_trouble_code_three(data);
         break;
     case STATE_STORED_CODE_ONE:
-        read_stored_trouble_code_one();
+        read_stored_trouble_code_one(data);
         break;
     case STATE_STORED_CODE_TWO:
-        read_stored_trouble_code_two();
+        read_stored_trouble_code_two(data);
         break;
     case STATE_STORED_CODE_THREE:
-        read_stored_trouble_code_three();
+        read_stored_trouble_code_three(data);
         break;
     }
+    xQueueSend(lcd_queue, (void *)data, portMAX_DELAY);
 }
 
 static inline void process_event(struct state_machine_data *data, state_event_e event)
@@ -177,20 +180,26 @@ static inline void process_event(struct state_machine_data *data, state_event_e 
     }
 }
 
-static inline state_event_e process_input(struct state_machine_data *data)
+static inline state_event_e process_input(void)
 {
-    return read_state_event();
+    state_event_e recieved_event;
+    if (xQueueReceive(event_queue, (void *)&recieved_event, portMAX_DELAY) == pdPASS)
+    {
+        return recieved_event;
+    }
+    return STATE_EVENT_NONE;
 }
 
-void state_machine_run(void)
+void state_machine_task(void *parameters)
 {
     struct state_machine_data data;
+    uart_init();
     state_machine_init(&data);
 
     for (;;)
     {
-        const state_event_e next_event = process_input(&data);
+        state_event_e next_event = process_input();
         process_event(&data, next_event);
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(30));
     }
 }
