@@ -28,25 +28,26 @@
 #define STORED_TROUBLE_CODE_TWO_ADDR    (0x1605)
 #define STORED_TROUBLE_CODE_THREE_ADDR  (0x1606)
 
-struct ecu_params
+struct __attribute__((packed)) ecu_params 
 {
     uint8_t romid[3];
-    uint8_t vehicle_speed;
-    uint16_t engine_speed;
     uint8_t load;
-    uint8_t throttle_percentage;
 
-    float airflow;
+    uint8_t throttle_percentage;
     uint8_t ignition_timing;
     uint8_t iac;
     uint8_t timing_correction;
-    int16_t coolant_temp;
 
-    uint16_t boost_solenoid;
-    float barop;
-    float battery_voltage;
-    float throttle_voltage;
+    uint16_t engine_speed;
+    int16_t coolant_temp;
+    
     float injector_pw;
+    float battery_voltage;
+    float airflow;
+    float vehicle_speed;
+    float boost_solenoid;
+    float barop;
+    float throttle_voltage;
     float manip;
     float o2_voltage;
     float fuel_trim;
@@ -113,11 +114,5 @@ struct trouble_code_three
 };
 
 extern const uint8_t coolant_lookup_table[];
-extern struct ecu_params parameters;
-extern struct input_switches status0;
-extern struct io_switches status1;
-extern struct trouble_code_one status2;
-extern struct trouble_code_two status3;
-extern struct trouble_code_three status4;
 
 #endif
