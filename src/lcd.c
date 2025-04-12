@@ -6,9 +6,9 @@
 #include "state_machine.h"
 #include "ssm1.h"
 
-#define I2C_NUM                     I2C_NUM_0
-#define I2C_MASTER_SCL_IO           GPIO_NUM_22
-#define I2C_MASTER_SDA_IO           GPIO_NUM_21
+#define I2C_NUM                     (I2C_NUM_0)
+#define I2C_MASTER_SCL_IO           (GPIO_NUM_22)
+#define I2C_MASTER_SDA_IO           (GPIO_NUM_21)
 #define SLAVE_ADDRESS_LCD           (0x27)
 #define I2C_MASTER_FREQ_HZ          (400000)
 #define I2C_MASTER_NUM              (0)
@@ -40,7 +40,7 @@ static esp_err_t i2c_master_init(void)
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
         .master.clk_speed = I2C_MASTER_FREQ_HZ,
     };
-
+    ESP_LOGI("LCD", "I2c master Initialized...");
     i2c_param_config(i2c_master_port, &conf);
     return i2c_driver_install(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
 }
@@ -58,11 +58,7 @@ static void lcd_send_command(char cmd)
     data_t[3] = data_l | 0x08;    // EN = 0, RS = 0
 
     err = i2c_master_write_to_device(I2C_NUM, SLAVE_ADDRESS_LCD, data_t, 4, 1000);
-
-    if (err != 0)
-    {
-        ESP_LOGI("LCD", "Error sending command");
-    }
+    ESP_LOGI("LCD", "Sending command...");
 }
 
 static void lcd_send_data(char data)
@@ -78,11 +74,6 @@ static void lcd_send_data(char data)
     data_t[3] = data_l | 0x09;     // EN = 0, RS = 1
 
     err = i2c_master_write_to_device(I2C_NUM, SLAVE_ADDRESS_LCD, data_t, 4, 1000);
-
-    if (err != 0)
-    {
-        ESP_LOGI("LCD", "Error sending data");
-    }
 }
 
 static inline void lcd_clear(void)
@@ -95,14 +86,13 @@ static void lcd_set_cursor(int row, int col)
 {
     switch (row)
     {
-    case 0:
-        col |= LCD_CMD_SET_CURSOR; // Set position for row 0
+    case 0: 
+        col |= LCD_CMD_SET_CURSOR;          
         break;
-    case 1:
-        col |= (LCD_CMD_SET_CURSOR | 0x40); // Set position for row 1
+    case 1: 
+        col |= (LCD_CMD_SET_CURSOR | 0x40); 
         break;
     }
-
     lcd_send_command(col); // Send command to set cursor position
 }
 
@@ -111,146 +101,230 @@ static void lcd_init(void)
     i2c_master_init();
 
     // 4-bit initialization sequence
-    vTaskDelay(pdMS_TO_TICKS(5));
+    vTaskDelay(pdMS_TO_TICKS(50));
     lcd_send_command(LCD_CMD_INIT_8_BIT_MODE);
     vTaskDelay(pdMS_TO_TICKS(5));
     lcd_send_command(LCD_CMD_INIT_8_BIT_MODE);
-    vTaskDelay(pdMS_TO_TICKS(0.2));
+    vTaskDelay(pdMS_TO_TICKS(5));
     lcd_send_command(LCD_CMD_INIT_8_BIT_MODE);
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(5));
     lcd_send_command(LCD_CMD_INIT_4_BIT_MODE);
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(5));
 
     // Display initialization
-    lcd_send_command(LCD_CMD_FUNCTION_SET); // Function set: 4-bit mode, 2-line display, 5x8 characters
-    vTaskDelay(pdMS_TO_TICKS(1));
+    lcd_send_command(LCD_CMD_FUNCTION_SET);
+    vTaskDelay(pdMS_TO_TICKS(5));
     lcd_send_command(LCD_CMD_DISPLAY_OFF);
-    vTaskDelay(pdMS_TO_TICKS(1));
+    vTaskDelay(pdMS_TO_TICKS(5));
     lcd_send_command(LCD_CMD_CLEAR_DISPLAY);
-    vTaskDelay(pdMS_TO_TICKS(1));
-    lcd_send_command(LCD_CMD_ENTRY_MODE_SET); // Entry mode set: increment cursor, no shift
-    vTaskDelay(pdMS_TO_TICKS(1));
+    vTaskDelay(pdMS_TO_TICKS(5));
+    lcd_send_command(LCD_CMD_ENTRY_MODE_SET);
+    vTaskDelay(pdMS_TO_TICKS(5));
     lcd_send_command(LCD_CMD_DISPLAY_ON);
-    vTaskDelay(pdMS_TO_TICKS(1));
+    vTaskDelay(pdMS_TO_TICKS(5));
+
+    ESP_LOGI("LCD", "LCD initialized...");
 }
 
 static void lcd_send_string(char *str)
 {
     while (*str)
+    {
         lcd_send_data(*str++);
+    }
 }
 
-static void print_romid(struct state_machine_data *data)
+static void lcd_print_state(struct state_machine_data *data)
 {
-    static uint8_t buf[8];
-    for (uint8_t i = 0; i < 8; ++i)
+    char lcd_buf[16];
+    switch (data->state)
     {
-        if (i == 2 || i == 5)
-        {
-            lcd_send_string(".");
-        }
-        if (data->parameters.romid[i] < 0x10)
-        {
-            lcd_send_string("0"); // Print leading zero for single-digit hex values
-        }
-        // lcd.print(answer[i], HEX);
+    case STATE_ROMID:
+        ESP_LOGI("LCD", "romid");
+
+        break;
+
+    case STATE_BATTERY_V:
+        ESP_LOGI("LCD", "battery");
+        break;
+
+    case STATE_VEHICLE_SPEED:
+        ESP_LOGI("LCD", "speed");
+        snprintf(lcd_buf, sizeof(lcd_buf), "VSPD: %.2f km/h", data->parameters.vehicle_speed);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_ENGINE_SPEED:
+        ESP_LOGI("LCD", "rpm");
+        snprintf(lcd_buf, sizeof(lcd_buf), "REV: %d rpm    ", data->parameters.engine_speed);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_COOLANT_TEMP:
+        ESP_LOGI("LCD", "coolant");
+        snprintf(lcd_buf, sizeof(lcd_buf), "WATR: %d f     ", data->parameters.coolant_temp);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_AIRFLOW:
+        ESP_LOGI("LCD", "maf");
+        snprintf(lcd_buf, sizeof(lcd_buf), "MAF: %.2f v    ", data->parameters.airflow);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_THROTTLE:
+        ESP_LOGI("LCD", "throttle");
+        snprintf(lcd_buf, sizeof(lcd_buf), "TPS: %d %%     ", data->parameters.throttle_percentage);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_THROTTLE_V:
+        ESP_LOGI("LCD", "throttle v");
+        snprintf(lcd_buf, sizeof(lcd_buf), "TPS: %.2f v    ", data->parameters.throttle_voltage);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_MANIP:
+        ESP_LOGI("LCD", "manip");
+        snprintf(lcd_buf, sizeof(lcd_buf), "MANIP: %.2f    ", data->parameters.manip);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_BOOST_SOLINOID:
+        ESP_LOGI("LCD", "wgc");
+        snprintf(lcd_buf, sizeof(lcd_buf), "WGC: %.2f      ", data->parameters.boost_solenoid);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_IGNITION_TIMING:
+        ESP_LOGI("LCD", "ign");
+        snprintf(lcd_buf, sizeof(lcd_buf), "IGN: %d        ", data->parameters.ignition_timing);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_LOAD:
+        ESP_LOGI("LCD", "load");
+        snprintf(lcd_buf, sizeof(lcd_buf), "LOAD: %d       ", data->parameters.load);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+        
+    case STATE_INJECTOR_PW:
+        ESP_LOGI("LCD", "inj");
+        snprintf(lcd_buf, sizeof(lcd_buf), "INJ: %.3f      ", data->parameters.injector_pw);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_IAC:
+        ESP_LOGI("LCD", "iac");
+        snprintf(lcd_buf, sizeof(lcd_buf), "IAC: %d        ", data->parameters.iac);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_O2_V:
+        ESP_LOGI("LCD", "o2");
+        snprintf(lcd_buf, sizeof(lcd_buf), "O2: %.2f ", data->parameters.o2_voltage);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_TIMING_CORRECTION:
+        ESP_LOGI("LCD", "timing");
+        snprintf(lcd_buf, sizeof(lcd_buf), "CORR: %d       ", data->parameters.timing_correction);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_FUEL_TRIM:
+        ESP_LOGI("LCD", "trim");
+        snprintf(lcd_buf, sizeof(lcd_buf), "TRIM: %.2f     ", data->parameters.fuel_trim);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_BAROP:
+        ESP_LOGI("LCD", "barop");
+        snprintf(lcd_buf, sizeof(lcd_buf), "IGN: %.2f      ", data->parameters.barop);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_INPUT_SWITCHES:
+        ESP_LOGI("LCD", "input switch");
+        snprintf(lcd_buf, sizeof(lcd_buf), "IG%d AT%d TM%d RM%d", data->status0.ignition, data->status0.auto_trans, data->status0.test_mode, data->status0.read_mode);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        snprintf(lcd_buf, sizeof(lcd_buf), "NT%d PK%d CA%d    ", data->status0.neutral, data->status0.park, data->status0.california);               
+        lcd_set_cursor(0, 1);
+        lcd_send_string(lcd_buf); 
+        break;
+
+    case STATE_INOUT_SWITCHES:
+        ESP_LOGI("LCD", "io switch");
+        snprintf(lcd_buf, sizeof(lcd_buf), "ID%d AC%d AR%d RF%d", data->status1.idle_sw, data->status1.ac_sw, data->status1.ac_relay, data->status1.rad_fan);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        snprintf(lcd_buf, sizeof(lcd_buf), "FP%d CN%d KS%d PX%d", data->status1.fuel_pump, data->status1.purge_valve, data->status1.pinging, data->status1.press_exch);
+        lcd_set_cursor(0, 1);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_STORED_CODE_ONE:
+    case STATE_ACTIVE_CODE_ONE:
+        ESP_LOGI("LCD", "code 1");
+        snprintf(lcd_buf, sizeof(lcd_buf), "11%d 12%d 13%d 14%d", data->status2.crank, data->status2.starter, data->status2.cam, data->status2.inj_1);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        snprintf(lcd_buf, sizeof(lcd_buf), "15%d 16%d 17%d    ", data->status2.inj_2, data->status2.inj_3, data->status2.inj_4);
+        lcd_set_cursor(0, 1);
+        lcd_send_string(lcd_buf);
+        break;
+    
+    case STATE_STORED_CODE_TWO:
+    case STATE_ACTIVE_CODE_TWO:
+        ESP_LOGI("LCD", "code 2");
+        snprintf(lcd_buf, sizeof(lcd_buf), "21%d 22%d 23%d 24%d", data->status3.temp, data->status3.knock, data->status3.maf, data->status3.iacv);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        snprintf(lcd_buf, sizeof(lcd_buf), "31%d 32%d 33%d 35%d", data->status3.tps, data->status3.oxygen, data->status3.vss, data->status3.purge);
+        lcd_set_cursor(0, 1);
+        lcd_send_string(lcd_buf);
+        break;
+
+    case STATE_STORED_CODE_THREE:
+    case STATE_ACTIVE_CODE_THREE:
+        ESP_LOGI("LCD", "code 3");
+        snprintf(lcd_buf, sizeof(lcd_buf), "41%d 42%d 44%d 45%d", data->status4.fuel_trim, data->status4.idle_sw, data->status4.wgc, data->status4.baro);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
+        snprintf(lcd_buf, sizeof(lcd_buf), "49%d 51%d 52%d    ", data->status4.wrong_maf, data->status4.neutral_sw, data->status4.parking_sw);
+        lcd_set_cursor(0, 1);
+        lcd_send_string(lcd_buf);
+        break;
     }
 }
 
 void lcd_task(void *parameters)
 {
     lcd_init();
-    lcd_send_string("hello");
-    struct state_machine_data received_data;
-    char lcd_buffer[16];
-
+    struct state_machine_data data;
     for (;;)
     {
-        if (xQueueReceive(lcd_queue, (void *)&received_data, portMAX_DELAY) == pdTRUE)
+        if (xQueueReceive(lcd_queue, (void *)&data, portMAX_DELAY) == pdTRUE)
         {
-            lcd_clear();
-            switch (received_data.state)
-            {
-            case STATE_ROMID:
-                ESP_LOGI("STATE", "romid");
-                uint8_t romid_buf[3];
-                get_romid(romid_buf);
-                // lcd_send_string(romid_buf);
-                break;
-            case STATE_BATTERY_V:
-                ESP_LOGI("STATE", "battery"); 
-                break;
-            case STATE_VEHICLE_SPEED:
-                ESP_LOGI("STATE", "speed");
-                snprintf(lcd_buffer, sizeof(lcd_buffer), "VSPD: %d km/h", received_data.parameters.vehicle_speed);
-                lcd_set_cursor(0, 0);
-                lcd_send_string(lcd_buffer);
-                break;
-            case STATE_ENGINE_SPEED:
-                ESP_LOGI("STATE", "rpm");
-                snprintf(lcd_buffer, sizeof(lcd_buffer), "REV: %d rpm", received_data.parameters.engine_speed);
-                lcd_set_cursor(0, 0);
-                lcd_send_string(lcd_buffer);
-                break;
-            case STATE_COOLANT_TEMP:
-                break;
-            case STATE_AIRFLOW:
-                break;
-            case STATE_THROTTLE:
-                break;
-            case STATE_THROTTLE_V:
-                break;
-            case STATE_MANIP:
-                break;
-            case STATE_BOOST_SOLINOID:
-                break;
-            case STATE_IGNITION_TIMING:
-                break;
-            case STATE_LOAD:
-
-                break;
-            case STATE_INJECTOR_PW:
-
-                break;
-            case STATE_IAC:
-
-                break;
-            case STATE_O2_V:
-
-                break;
-            case STATE_TIMING_CORRECTION:
-            
-                break;
-            case STATE_FUEL_TRIM:
-
-                break;
-            case STATE_BAROP:
-
-                break;
-            case STATE_INPUT_SWITCHES:
-
-                break;
-            case STATE_INOUT_SWITCHES:
-
-                break;
-            case STATE_ACTIVE_CODE_ONE:
-
-                break;
-            case STATE_ACTIVE_CODE_TWO:
-
-                break;
-            case STATE_ACTIVE_CODE_THREE:
-
-                break;
-            case STATE_STORED_CODE_ONE:
-
-                break;
-            case STATE_STORED_CODE_TWO:
-
-                break;
-            case STATE_STORED_CODE_THREE:
-                break;
-            }
+            lcd_print_state(&data);
         }
+        vTaskDelay(pdMS_TO_TICKS(20));
     }
 }
