@@ -23,10 +23,3 @@ const uint8_t coolant_lookup_table[] __attribute__((section(".rodata"))) =
 		 24, 27, 31, 33, 36, 40, 42, 45, 47, 47, 47, 47, 47, 47, 47, 47
 		// the last 29 values need to be inverted
 };
-
-struct ecu_params parameters;
-struct input_switches status0;
-struct io_switches status1;
-struct trouble_code_one status2;
-struct trouble_code_two status3;
-struct trouble_code_three status4;
