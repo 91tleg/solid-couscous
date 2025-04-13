@@ -3,30 +3,30 @@
 
 #include <stdint.h>
 
-#define BATTERY_VOLTAGE_ADDR            (0x1404)
-#define VEHICLE_SPEED_ADDR              (0x154B)
-#define ENGINE_SPEED_ADDR               (0x140B)
-#define COOLANT_TEMP_ADDR               (0x1405)
-#define IGNITION_ADVANCE_ADDR           (0x1489)
-#define AIRFLOW_SENSOR_ADDR             (0x1400)
-#define ENGINE_LOAD_ADDR                (0x1414)
-#define THROTTLE_ADDR                   (0x1487)
-#define INJECTOR_PULSE_WIDTH_ADDR       (0x15F0)
-#define IAC_VALVE_ADDR                  (0x158A)
-#define TIMING_CORRECTION_ADDR          (0x1530)
-#define O2_AVERAGE_ADDR                 (0x1403)
-#define AF_CORRECTION_ADDR              (0x1488)
-#define ATMOSPHERIC_PRESSURE_ADDR       (0x1516)
-#define MANIFOLD_PRESSURE_ADDR          (0x00BE)
-#define BOOST_SOLENOID_ADDR             (0x144D)
-#define INPUT_SWITCHES_ADDR             (0x15A8)
-#define INOUT_SWITCHES_ADDR             (0x15A9)
-#define ACTIVE_TROUBLE_CODE_ONE_ADDR    (0x0047)
-#define ACTIVE_TROUBLE_CODE_TWO_ADDR    (0x0048)
-#define ACTIVE_TROUBLE_CODE_THREE_ADDR  (0x0049)
-#define STORED_TROUBLE_CODE_ONE_ADDR    (0x1604)
-#define STORED_TROUBLE_CODE_TWO_ADDR    (0x1605)
-#define STORED_TROUBLE_CODE_THREE_ADDR  (0x1606)
+#define BATTERY_VOLTAGE_ADDR            (0X1404U)
+#define VEHICLE_SPEED_ADDR              (0X154BU)
+#define ENGINE_SPEED_ADDR               (0X140BU)
+#define COOLANT_TEMP_ADDR               (0X1405U)
+#define IGNITION_ADVANCE_ADDR           (0X1489U)
+#define AIRFLOW_SENSOR_ADDR             (0X1400U)
+#define ENGINE_LOAD_ADDR                (0X1414U)
+#define THROTTLE_ADDR                   (0X1487U)
+#define INJECTOR_PULSE_WIDTH_ADDR       (0X15F0U)
+#define IAC_VALVE_ADDR                  (0X158AU)
+#define TIMING_CORRECTION_ADDR          (0X1530U)
+#define O2_AVERAGE_ADDR                 (0X1403U)
+#define AF_CORRECTION_ADDR              (0X1488U)
+#define ATMOSPHERIC_PRESSURE_ADDR       (0X1516U)
+#define MANIFOLD_PRESSURE_ADDR          (0X00BEU)
+#define BOOST_SOLENOID_ADDR             (0X144DU)
+#define INPUT_SWITCHES_ADDR             (0X15A8U)
+#define INOUT_SWITCHES_ADDR             (0X15A9U)
+#define ACTIVE_TROUBLE_CODE_ONE_ADDR    (0X0047U)
+#define ACTIVE_TROUBLE_CODE_TWO_ADDR    (0X0048U)
+#define ACTIVE_TROUBLE_CODE_THREE_ADDR  (0X0049U)
+#define STORED_TROUBLE_CODE_ONE_ADDR    (0X1604U)
+#define STORED_TROUBLE_CODE_TWO_ADDR    (0X1605U)
+#define STORED_TROUBLE_CODE_THREE_ADDR  (0X1606U)
 
 struct __attribute__((packed)) ecu_params 
 {
@@ -52,6 +52,11 @@ struct __attribute__((packed)) ecu_params
     float o2_voltage;
     float fuel_trim;
 };
+
+/**
+ * Bit fields are inherently non-portable across compilers, and as such guarantee that your code is not reusable.
+ * Use #defines and bit masks. This is a highly portable method, and is the one that should be used.
+ */
 
 struct input_switches
 {
