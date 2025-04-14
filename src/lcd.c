@@ -9,22 +9,25 @@
 #define I2C_NUM                     (I2C_NUM_0)
 #define I2C_MASTER_SCL_IO           (GPIO_NUM_22)
 #define I2C_MASTER_SDA_IO           (GPIO_NUM_21)
-#define SLAVE_ADDRESS_LCD           (0x27)
-#define I2C_MASTER_FREQ_HZ          (400000)
+#define SLAVE_ADDRESS_LCD           (0x27U)
+#define I2C_MASTER_FREQ_HZ          (400000U)
 #define I2C_MASTER_NUM              (0)
 #define I2C_MASTER_TX_BUF_DISABLE   (0)
 #define I2C_MASTER_RX_BUF_DISABLE   (0)
-#define I2C_MASTER_TIMEOUT_MS       (1000)
 
-#define LCD_CMD_CLEAR_DISPLAY       (0x01)
-#define LCD_CMD_RETURN_HOME         (0x02)
-#define LCD_CMD_ENTRY_MODE_SET      (0x06)
-#define LCD_CMD_DISPLAY_ON          (0x0C)
-#define LCD_CMD_DISPLAY_OFF         (0x08)
-#define LCD_CMD_FUNCTION_SET        (0x28)
-#define LCD_CMD_SET_CURSOR          (0x80)
-#define LCD_CMD_INIT_8_BIT_MODE     (0x30)
-#define LCD_CMD_INIT_4_BIT_MODE     (0x20)
+#define LCD_CMD_CLEAR_DISPLAY       (0x01U)
+#define LCD_CMD_RETURN_HOME         (0x02U)
+#define LCD_CMD_ENTRY_MODE_SET      (0x06U)
+#define LCD_CMD_DISPLAY_ON          (0x0CU)
+#define LCD_CMD_DISPLAY_OFF         (0x08U)
+#define LCD_CMD_FUNCTION_SET        (0x28U)
+#define LCD_CMD_SET_CURSOR          (0x80U)
+#define LCD_CMD_INIT_8_BIT_MODE     (0x30U)
+#define LCD_CMD_INIT_4_BIT_MODE     (0x20U)
+
+#define BIT_MASK (0xF0U)
+#define GET_UPPER_NIBBLE(x) ((x) & BIT_MASK)
+#define GET_LOWER_NIBBLE_SHIFTED(x) (((x) << 4) & BIT_MASK)
 
 esp_err_t err;
 
@@ -45,29 +48,28 @@ static esp_err_t i2c_master_init(void)
     return i2c_driver_install(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
 }
 
-static void lcd_send_command(char cmd)
+static void lcd_send_command(uint8_t cmd)
 {
-    char data_u, data_l;
-    uint8_t data_t[4];
+    static uint8_t data_u, data_l;
+    static uint8_t data_t[4];
 
-    data_u = (cmd & 0xf0);        // Upper nibble of the command
-    data_l = ((cmd << 4) & 0xf0); // Lower nibble of the command
+    data_u = GET_UPPER_NIBBLE(cmd);
+    data_l = GET_LOWER_NIBBLE_SHIFTED(cmd);
     data_t[0] = data_u | 0x0C;    // EN = 1, RS = 0
     data_t[1] = data_u | 0x08;    // EN = 0, RS = 0
     data_t[2] = data_l | 0x0C;    // EN = 1, RS = 0
     data_t[3] = data_l | 0x08;    // EN = 0, RS = 0
 
     err = i2c_master_write_to_device(I2C_NUM, SLAVE_ADDRESS_LCD, data_t, 4, 1000);
-    ESP_LOGI("LCD", "Sending command...");
 }
 
 static void lcd_send_data(char data)
 {
-    char data_u, data_l;
-    uint8_t data_t[4];
+    static char data_u, data_l;
+    static uint8_t data_t[4];
 
-    data_u = (data & 0xf0);        // Upper nibble of the data
-    data_l = ((data << 4) & 0xf0); // Lower nibble of the data
+    data_u = GET_UPPER_NIBBLE(data);
+    data_l = GET_LOWER_NIBBLE_SHIFTED(data);
     data_t[0] = data_u | 0x0D;     // EN = 1, RS = 1
     data_t[1] = data_u | 0x09;     // EN = 0, RS = 1
     data_t[2] = data_l | 0x0D;     // EN = 1, RS = 1
@@ -136,7 +138,7 @@ static void lcd_send_string(char *str)
 
 static void lcd_print_state(struct state_machine_data *data)
 {
-    char lcd_buf[16];
+    static char lcd_buf[16];
     switch (data->state)
     {
     case STATE_ROMID:
@@ -157,14 +159,14 @@ static void lcd_print_state(struct state_machine_data *data)
 
     case STATE_ENGINE_SPEED:
         ESP_LOGI("LCD", "rpm");
-        snprintf(lcd_buf, sizeof(lcd_buf), "REV: %d rpm    ", data->parameters.engine_speed);
+        snprintf(lcd_buf, sizeof(lcd_buf), "REV: %d rpm ", data->parameters.engine_speed);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
 
     case STATE_COOLANT_TEMP:
         ESP_LOGI("LCD", "coolant");
-        snprintf(lcd_buf, sizeof(lcd_buf), "WATR: %d f     ", data->parameters.coolant_temp);
+        snprintf(lcd_buf, sizeof(lcd_buf), "WATR: %d f ", data->parameters.coolant_temp);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
@@ -206,28 +208,28 @@ static void lcd_print_state(struct state_machine_data *data)
 
     case STATE_IGNITION_TIMING:
         ESP_LOGI("LCD", "ign");
-        snprintf(lcd_buf, sizeof(lcd_buf), "IGN: %d        ", data->parameters.ignition_timing);
+        snprintf(lcd_buf, sizeof(lcd_buf), "IGN: %d       ", data->parameters.ignition_timing);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
 
     case STATE_LOAD:
         ESP_LOGI("LCD", "load");
-        snprintf(lcd_buf, sizeof(lcd_buf), "LOAD: %d       ", data->parameters.load);
+        snprintf(lcd_buf, sizeof(lcd_buf), "LOAD: %d      ", data->parameters.load);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
         
     case STATE_INJECTOR_PW:
         ESP_LOGI("LCD", "inj");
-        snprintf(lcd_buf, sizeof(lcd_buf), "INJ: %.3f      ", data->parameters.injector_pw);
+        snprintf(lcd_buf, sizeof(lcd_buf), "INJ: %.3f    ", data->parameters.injector_pw);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
 
     case STATE_IAC:
         ESP_LOGI("LCD", "iac");
-        snprintf(lcd_buf, sizeof(lcd_buf), "IAC: %d        ", data->parameters.iac);
+        snprintf(lcd_buf, sizeof(lcd_buf), "IAC: %d      ", data->parameters.iac);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
@@ -241,7 +243,7 @@ static void lcd_print_state(struct state_machine_data *data)
 
     case STATE_TIMING_CORRECTION:
         ESP_LOGI("LCD", "timing");
-        snprintf(lcd_buf, sizeof(lcd_buf), "CORR: %d       ", data->parameters.timing_correction);
+        snprintf(lcd_buf, sizeof(lcd_buf), "CORR: %d     ", data->parameters.timing_correction);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
@@ -318,7 +320,7 @@ static void lcd_print_state(struct state_machine_data *data)
 void lcd_task(void *parameters)
 {
     lcd_init();
-    struct state_machine_data data;
+    static struct state_machine_data data;
     for (;;)
     {
         if (xQueueReceive(lcd_queue, (void *)&data, portMAX_DELAY) == pdTRUE)
