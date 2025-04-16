@@ -1,5 +1,6 @@
 #include "process_parameters.h"
 #include "parameters.h"
+#include "defines.h"
 
 __attribute__((always_inline)) static inline float recipsf2(float a)
 {
@@ -25,17 +26,16 @@ __attribute__((always_inline)) static inline float recipsf2(float a)
 void read_battery_voltage(struct state_machine_data *data)
 {
     uint8_t value = read_data_from_address(BATTERY_VOLTAGE_ADDR);
-    float recip = recipsf2(100);
+    float recip = recipsf2(100.0);
     __asm__ volatile(
         "mov a2, %1\n"
-        "extui a2, a2, 0, 8\n" // Extend a2 to 16 bits
         "movi a3, 8\n"
         "mull a2, a2, a3\n"
         "ufloat.s f0, a2, 1\n"
         "wfr f1, %2\n"
-        "mul.s f0, f0, f1"
+        "mul.s f0, f0, f1\n"
         "rfr %0, f0\n"
-        : "=f"(data->parameters.battery_voltage)
+        : "=r"(data->parameters.battery_voltage)
         : "r"(value), "r"(recip)
         : "a2", "a3", "f0", "f1");
 }
@@ -45,7 +45,6 @@ void read_vehicle_speed(struct state_machine_data *data)
     uint8_t value = read_data_from_address(VEHICLE_SPEED_ADDR);
     __asm__ volatile(
         "mov a2, %1\n"
-        "extui a2, a2, 0, 8\n"
         "movi a3, 10\n"
         "mull a2, a2, a3\n"
         "srli a2, a2, 4\n" // Divide by 16
@@ -60,7 +59,6 @@ void read_engine_speed(struct state_machine_data *data)
     uint8_t value = read_data_from_address(ENGINE_SPEED_ADDR);
     __asm__ volatile(
         "mov a2, %1\n"
-        "extui a2, a2, 0, 8\n"
         "movi a3, 25\n"
         "mull a2, a2, a3\n"
         "mov %0, a2\n"
@@ -74,7 +72,6 @@ void read_coolant_temp(struct state_machine_data *data)
     uint8_t index = read_data_from_address(COOLANT_TEMP_ADDR);
     __asm__ volatile(
         "mov a2, %1\n"
-        "extui a2, a2, 0, 8\n"
         "movi a3, 14\n"
         "sub a3, a2, a3\n" // a3 = a2 - 14
         "movi a4, 0\n"
@@ -99,16 +96,16 @@ void read_coolant_temp(struct state_machine_data *data)
 void read_airflow(struct state_machine_data *data)
 {
     uint8_t value = read_data_from_address(AIRFLOW_SENSOR_ADDR);
-    float recip = recipsf2(50);
+    float recip = recipsf2(50.0);
     __asm__ volatile(
         "mov a2, %1\n"
         "ufloat.s f0, a2, 1\n"
         "wfr f1, %2\n"
-        "mul.s f0, f0, f1"
+        "mul.s f0, f0, f1\n"
         "rfr %0, f0\n"
-        : "=f"(data->parameters.battery_voltage)
+        : "=r"(data->parameters.battery_voltage)
         : "r"(value), "r"(recip)
-        : "a2", "a3", "f0", "f1");
+        : "a2", "f0", "f1");
 }
 
 void read_throttle_percentage(struct state_machine_data *data)
@@ -116,7 +113,6 @@ void read_throttle_percentage(struct state_machine_data *data)
     uint8_t value = read_data_from_address(THROTTLE_ADDR);
     __asm__ volatile(
         "mov a2, %1\n"
-        "extui a2, a2, 0, 8\n"
         "movi a3, 100\n"
         "mull a2, a2, a3\n"
         "srli a2, a2, 8\n" // Devide by 256
@@ -130,6 +126,8 @@ void read_throttle_signal(struct state_machine_data *data)
 {
     uint8_t value = read_data_from_address(BOOST_SOLENOID_ADDR);
 
+    //TODO:
+    UNUSED(value);
     // ecu_parameters.thv = (float)(read_data_from_address(THROTTLE_ADDR)) * 100 / 256;
 }
 
@@ -137,6 +135,8 @@ void read_manifold_pressure(struct state_machine_data *data)
 {
     uint8_t value = read_data_from_address(BOOST_SOLENOID_ADDR);
 
+    // TODO:
+    UNUSED(value);
     // ecu_parameters.manip = (float)(read_data_from_address(MANIFOLD_PRESSURE_ADDR)) / 0.128 - 1060;
 }
 
@@ -145,7 +145,6 @@ void read_boost_control_duty_cycle(struct state_machine_data *data)
     uint8_t value = read_data_from_address(BOOST_SOLENOID_ADDR);
     __asm__ volatile(
         "mov a2, %1\n"
-        "extui a2, a2, 0, 8\n"
         "movi a3, 100\n"
         "mull a2, a2, a3\n"
         "srli a2, a2, 8\n" // Devide by 256
@@ -158,11 +157,13 @@ void read_boost_control_duty_cycle(struct state_machine_data *data)
 void read_ignition_timing(struct state_machine_data *data)
 {
     uint8_t value = read_data_from_address(IGNITION_ADVANCE_ADDR);
+    data->parameters.ignition_timing = value; 
 }
 
 void read_load(struct state_machine_data *data)
 {
     uint8_t value = read_data_from_address(ENGINE_LOAD_ADDR);
+    data->parameters.load = value;
 }
 
 void read_injector_pulse_width(struct state_machine_data *data)
@@ -196,7 +197,7 @@ void read_iacv_duty_cycle(struct state_machine_data *data)
 void read_o2_signal(struct state_machine_data *data)
 {
     uint8_t value = read_data_from_address(O2_AVERAGE_ADDR);
-    float recip = recipsf2(100);
+    float recip = recipsf2(100.0);
     __asm__ volatile(
         "mov a2, %1\n"
         "ufloat.s f0, a2, 1\n"
@@ -211,6 +212,7 @@ void read_o2_signal(struct state_machine_data *data)
 void read_timing_correction(struct state_machine_data *data)
 {
     uint8_t value = read_data_from_address(TIMING_CORRECTION_ADDR);
+    data->parameters.timing_correction = value;
 }
 
 void read_fuel_trim(struct state_machine_data *data)
@@ -219,7 +221,6 @@ void read_fuel_trim(struct state_machine_data *data)
     float recip = recipsf2(1.28);
     __asm__ volatile(
         "mov a2, %1\n"
-        "extui a2, a2, 0, 8\n"
         "movi a3, 128\n"
         "sub a2, a2, a3\n"
         "float.s f0, a2, 1\n"
@@ -236,13 +237,19 @@ void read_atmosphere_pressure(struct state_machine_data *data)
     uint8_t value = read_data_from_address(ATMOSPHERIC_PRESSURE_ADDR);
     float recip = recipsf2(0.323);
     __asm__ volatile(
-        "mov a2, %1\n"
+        "movi a2, 930\n"
 
-        // 930
-        
+        "mov a3, %1\n"
+        "float.s f0, a3, 1\n"
+        "wfr f1, %2\n"
+        "mul.s f0, f0, f1\n"
+
+        "float.s f1, a2, 1\n"
+        "sub.s f1, f1, f0\n"
+        "rfr %0, f1\n"
         : "=f"(data->parameters.barop)
         : "r"(value), "r"(recip)
-        : "a2", "f0", "f1", "f2");
+        : "a2", "a3", "f0", "f1");
 }
 
 void read_input_switches(struct state_machine_data *data)
