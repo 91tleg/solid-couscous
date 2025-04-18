@@ -247,7 +247,7 @@ void read_atmosphere_pressure(struct state_machine_data *data)
         "float.s f1, a2, 1\n"
         "sub.s f1, f1, f0\n"
         "rfr %0, f1\n"
-        : "=f"(data->parameters.barop)
+        : "=r"(data->parameters.barop)
         : "r"(value), "r"(recip)
         : "a2", "a3", "f0", "f1");
 }
