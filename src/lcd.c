@@ -12,8 +12,6 @@
 #define SLAVE_ADDRESS_LCD           (0x27U)
 #define I2C_MASTER_FREQ_HZ          (400000U)
 #define I2C_MASTER_NUM              (0)
-#define I2C_MASTER_TX_BUF_DISABLE   (0)
-#define I2C_MASTER_RX_BUF_DISABLE   (0)
 
 #define LCD_CMD_CLEAR_DISPLAY       (0x01U)
 #define LCD_CMD_RETURN_HOME         (0x02U)
@@ -30,52 +28,57 @@
 #define GET_LOWER_NIBBLE_SHIFTED(x) (((x) << 4) & BIT_MASK)
 
 esp_err_t err;
+static i2c_master_dev_handle_t dev_handle;
+static i2c_master_bus_handle_t bus_handle;
 
 static esp_err_t i2c_master_init(void)
 {
-    int i2c_master_port = I2C_MASTER_NUM;
-
-    i2c_config_t conf = {
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = I2C_MASTER_SDA_IO,
+    i2c_master_bus_config_t i2c_mst_config = {
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .i2c_port = I2C_MASTER_NUM,
         .scl_io_num = I2C_MASTER_SCL_IO,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = I2C_MASTER_FREQ_HZ,
+        .sda_io_num = I2C_MASTER_SDA_IO,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true
     };
-    ESP_LOGI("LCD", "I2c master Initialized...");
-    i2c_param_config(i2c_master_port, &conf);
-    return i2c_driver_install(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
+    ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_mst_config, &bus_handle));
+
+    i2c_device_config_t dev_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = SLAVE_ADDRESS_LCD,
+        .scl_speed_hz = I2C_MASTER_FREQ_HZ
+    };
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_cfg, &dev_handle));
+    ESP_LOGI("LCD", "i2c master initialized with new driver");
+    return ESP_OK;
 }
 
 static void lcd_send_command(uint8_t cmd)
 {
     static uint8_t data_u, data_l;
-    static uint8_t data_t[4];
+    static uint8_t buf[4];
 
     data_u = GET_UPPER_NIBBLE(cmd);
     data_l = GET_LOWER_NIBBLE_SHIFTED(cmd);
-    data_t[0] = data_u | 0x0C;    // EN = 1, RS = 0
-    data_t[1] = data_u | 0x08;    // EN = 0, RS = 0
-    data_t[2] = data_l | 0x0C;    // EN = 1, RS = 0
-    data_t[3] = data_l | 0x08;    // EN = 0, RS = 0
-
-    err = i2c_master_write_to_device(I2C_NUM, SLAVE_ADDRESS_LCD, data_t, 4, 1000);
+    buf[0] = data_u | 0x0C;    // EN = 1, RS = 0
+    buf[1] = data_u | 0x08;    // EN = 0, RS = 0
+    buf[2] = data_l | 0x0C;    // EN = 1, RS = 0
+    buf[3] = data_l | 0x08;    // EN = 0, RS = 0
+    err = i2c_master_transmit(dev_handle, buf, 4, pdMS_TO_TICKS(1000));
 }
 
 static void lcd_send_data(char data)
 {
     static char data_u, data_l;
-    static uint8_t data_t[4];
+    static uint8_t buf[4];
 
     data_u = GET_UPPER_NIBBLE(data);
     data_l = GET_LOWER_NIBBLE_SHIFTED(data);
-    data_t[0] = data_u | 0x0D;     // EN = 1, RS = 1
-    data_t[1] = data_u | 0x09;     // EN = 0, RS = 1
-    data_t[2] = data_l | 0x0D;     // EN = 1, RS = 1
-    data_t[3] = data_l | 0x09;     // EN = 0, RS = 1
-
-    err = i2c_master_write_to_device(I2C_NUM, SLAVE_ADDRESS_LCD, data_t, 4, 1000);
+    buf[0] = data_u | 0x0D;     // EN = 1, RS = 1
+    buf[1] = data_u | 0x09;     // EN = 0, RS = 1
+    buf[2] = data_l | 0x0D;     // EN = 1, RS = 1
+    buf[3] = data_l | 0x09;     // EN = 0, RS = 1
+    err = i2c_master_transmit(dev_handle, buf, 4, pdMS_TO_TICKS(1000));
 }
 
 static inline void lcd_clear(void)
