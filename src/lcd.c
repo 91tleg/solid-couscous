@@ -1,7 +1,7 @@
 #include "lcd.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
-#include "driver/i2c.h"
+#include "driver/i2c_master.h"
 #include "esp_log.h"
 #include "state_machine.h"
 #include "ssm1.h"
@@ -84,18 +84,15 @@ static inline void lcd_clear(void)
     vTaskDelay(pdMS_TO_TICKS(5));
 }
 
-static void lcd_set_cursor(int row, int col)
+static void lcd_set_cursor(int col, int row)
 {
-    switch (row)
+    uint8_t cmd = LCD_CMD_SET_CURSOR;
+    if (row == 1)
     {
-    case 0: 
-        col |= LCD_CMD_SET_CURSOR;          
-        break;
-    case 1: 
-        col |= (LCD_CMD_SET_CURSOR | 0x40); 
-        break;
+        cmd |= 0x40;
     }
-    lcd_send_command(col); // Send command to set cursor position
+    cmd |= col;
+    lcd_send_command(cmd);
 }
 
 static void lcd_init(void)
@@ -148,46 +145,49 @@ static void lcd_print_state(struct state_machine_data *data)
 
     case STATE_BATTERY_V:
         ESP_LOGI("LCD", "battery");
+        snprintf(lcd_buf, sizeof(lcd_buf), "VBAT: %.2fv ", data->parameters.battery_voltage);
+        lcd_set_cursor(0, 0);
+        lcd_send_string(lcd_buf);
         break;
 
     case STATE_VEHICLE_SPEED:
         ESP_LOGI("LCD", "speed");
-        snprintf(lcd_buf, sizeof(lcd_buf), "VSPD: %.2f km/h", data->parameters.vehicle_speed);
+        snprintf(lcd_buf, sizeof(lcd_buf), "VSPD: %.2fkm/h ", data->parameters.vehicle_speed);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
 
     case STATE_ENGINE_SPEED:
         ESP_LOGI("LCD", "rpm");
-        snprintf(lcd_buf, sizeof(lcd_buf), "REV: %d rpm ", data->parameters.engine_speed);
+        snprintf(lcd_buf, sizeof(lcd_buf), "REV: %drpm  ", data->parameters.engine_speed);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
 
     case STATE_COOLANT_TEMP:
         ESP_LOGI("LCD", "coolant");
-        snprintf(lcd_buf, sizeof(lcd_buf), "WATR: %d f ", data->parameters.coolant_temp);
+        snprintf(lcd_buf, sizeof(lcd_buf), "WATR: %df  ", data->parameters.coolant_temp);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
 
     case STATE_AIRFLOW:
         ESP_LOGI("LCD", "maf");
-        snprintf(lcd_buf, sizeof(lcd_buf), "MAF: %.2f v    ", data->parameters.airflow);
+        snprintf(lcd_buf, sizeof(lcd_buf), "MAF: %.2fv     ", data->parameters.airflow);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
 
     case STATE_THROTTLE:
         ESP_LOGI("LCD", "throttle");
-        snprintf(lcd_buf, sizeof(lcd_buf), "TPS: %d %%     ", data->parameters.throttle_percentage);
+        snprintf(lcd_buf, sizeof(lcd_buf), "TPS: %d%%      ", data->parameters.throttle_percentage);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
 
     case STATE_THROTTLE_V:
         ESP_LOGI("LCD", "throttle v");
-        snprintf(lcd_buf, sizeof(lcd_buf), "TPS: %.2f v    ", data->parameters.throttle_voltage);
+        snprintf(lcd_buf, sizeof(lcd_buf), "TPS: %.2fv     ", data->parameters.throttle_voltage);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
@@ -327,6 +327,6 @@ void lcd_task(void *parameters)
         {
             lcd_print_state(&data);
         }
-        vTaskDelay(pdMS_TO_TICKS(20));
+        vTaskDelay(pdMS_TO_TICKS(90));
     }
 }
