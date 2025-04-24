@@ -20,57 +20,83 @@ static const struct state_transition state_transitions[] __attribute__((section(
     {
         {STATE_ROMID, STATE_EVENT_BUTTON_PRESS, STATE_BATTERY_V},
         {STATE_ROMID, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_ROMID, STATE_EVENT_NONE, STATE_ROMID},
         {STATE_BATTERY_V, STATE_EVENT_BUTTON_PRESS, STATE_VEHICLE_SPEED},
         {STATE_BATTERY_V, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_BATTERY_V, STATE_EVENT_NONE, STATE_BATTERY_V},
         {STATE_VEHICLE_SPEED, STATE_EVENT_BUTTON_PRESS, STATE_ENGINE_SPEED},
         {STATE_VEHICLE_SPEED, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_VEHICLE_SPEED, STATE_EVENT_NONE, STATE_VEHICLE_SPEED},
         {STATE_ENGINE_SPEED, STATE_EVENT_BUTTON_PRESS, STATE_COOLANT_TEMP},
         {STATE_ENGINE_SPEED, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_ENGINE_SPEED, STATE_EVENT_NONE, STATE_ENGINE_SPEED},
         {STATE_COOLANT_TEMP, STATE_EVENT_BUTTON_PRESS, STATE_AIRFLOW},
         {STATE_COOLANT_TEMP, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_COOLANT_TEMP, STATE_EVENT_NONE, STATE_COOLANT_TEMP},
         {STATE_AIRFLOW, STATE_EVENT_BUTTON_PRESS, STATE_THROTTLE},
         {STATE_AIRFLOW, STATE_EVENT_BUTTON_LONG_PRESS, STATE_AIRFLOW},
+        {STATE_AIRFLOW, STATE_EVENT_NONE, STATE_AIRFLOW},
         {STATE_THROTTLE, STATE_EVENT_BUTTON_PRESS, STATE_THROTTLE_V},
         {STATE_THROTTLE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_THROTTLE, STATE_EVENT_NONE, STATE_THROTTLE},
         {STATE_THROTTLE_V, STATE_EVENT_BUTTON_PRESS, STATE_MANIP},
         {STATE_THROTTLE_V, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_THROTTLE_V, STATE_EVENT_NONE, STATE_THROTTLE_V}, 
         {STATE_MANIP, STATE_EVENT_BUTTON_PRESS, STATE_BOOST_SOLINOID},
         {STATE_MANIP, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_MANIP, STATE_EVENT_NONE, STATE_MANIP},
         {STATE_BOOST_SOLINOID, STATE_EVENT_BUTTON_PRESS, STATE_IGNITION_TIMING},
         {STATE_BOOST_SOLINOID, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_BOOST_SOLINOID, STATE_EVENT_NONE, STATE_BOOST_SOLINOID},
         {STATE_IGNITION_TIMING, STATE_EVENT_BUTTON_PRESS, STATE_LOAD},
         {STATE_IGNITION_TIMING, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_IGNITION_TIMING, STATE_EVENT_NONE, STATE_IGNITION_TIMING},
         {STATE_LOAD, STATE_EVENT_BUTTON_PRESS, STATE_INJECTOR_PW},
         {STATE_LOAD, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_LOAD, STATE_EVENT_NONE, STATE_LOAD},
         {STATE_INJECTOR_PW, STATE_EVENT_BUTTON_PRESS, STATE_IAC},
         {STATE_INJECTOR_PW, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_INJECTOR_PW, STATE_EVENT_NONE, STATE_INJECTOR_PW},
         {STATE_IAC, STATE_EVENT_BUTTON_PRESS, STATE_O2_V},
         {STATE_IAC, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_IAC, STATE_EVENT_NONE, STATE_IAC},
         {STATE_O2_V, STATE_EVENT_BUTTON_PRESS, STATE_TIMING_CORRECTION},
         {STATE_O2_V, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_O2_V, STATE_EVENT_NONE, STATE_O2_V},
         {STATE_TIMING_CORRECTION, STATE_EVENT_BUTTON_PRESS, STATE_FUEL_TRIM},
         {STATE_TIMING_CORRECTION, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_TIMING_CORRECTION, STATE_EVENT_NONE, STATE_TIMING_CORRECTION},
         {STATE_FUEL_TRIM, STATE_EVENT_BUTTON_PRESS, STATE_BAROP},
         {STATE_FUEL_TRIM, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_FUEL_TRIM, STATE_EVENT_NONE, STATE_FUEL_TRIM},
         {STATE_BAROP, STATE_EVENT_BUTTON_PRESS, STATE_INPUT_SWITCHES},
         {STATE_BAROP, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_BAROP, STATE_EVENT_NONE, STATE_BAROP},
         {STATE_INPUT_SWITCHES, STATE_EVENT_BUTTON_PRESS, STATE_INOUT_SWITCHES},
         {STATE_INPUT_SWITCHES, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_INPUT_SWITCHES, STATE_EVENT_NONE, STATE_INPUT_SWITCHES},
         {STATE_INOUT_SWITCHES, STATE_EVENT_BUTTON_PRESS, STATE_ACTIVE_CODE_ONE},
         {STATE_INOUT_SWITCHES, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_INOUT_SWITCHES, STATE_EVENT_NONE, STATE_INOUT_SWITCHES},
         {STATE_ACTIVE_CODE_ONE, STATE_EVENT_BUTTON_PRESS, STATE_ACTIVE_CODE_TWO},
         {STATE_ACTIVE_CODE_ONE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_ACTIVE_CODE_ONE, STATE_EVENT_NONE, STATE_ACTIVE_CODE_ONE},
         {STATE_ACTIVE_CODE_TWO, STATE_EVENT_BUTTON_PRESS, STATE_ACTIVE_CODE_THREE},
-        {STATE_ACTIVE_CODE_TWO, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID}, 
+        {STATE_ACTIVE_CODE_TWO, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_ACTIVE_CODE_TWO, STATE_EVENT_NONE, STATE_ACTIVE_CODE_TWO},  
         {STATE_ACTIVE_CODE_THREE, STATE_EVENT_BUTTON_PRESS, STATE_STORED_CODE_ONE},
-        {STATE_ACTIVE_CODE_THREE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID}, 
+        {STATE_ACTIVE_CODE_THREE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_ACTIVE_CODE_THREE, STATE_EVENT_NONE, STATE_ACTIVE_CODE_THREE},  
         {STATE_STORED_CODE_ONE, STATE_EVENT_BUTTON_PRESS, STATE_STORED_CODE_TWO},
-        {STATE_STORED_CODE_ONE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},  
+        {STATE_STORED_CODE_ONE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID}, 
+        {STATE_STORED_CODE_ONE, STATE_EVENT_NONE, STATE_STORED_CODE_ONE},   
         {STATE_STORED_CODE_TWO, STATE_EVENT_BUTTON_PRESS, STATE_STORED_CODE_THREE},
         {STATE_STORED_CODE_TWO, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},  
+        {STATE_STORED_CODE_TWO, STATE_EVENT_NONE, STATE_STORED_CODE_TWO},  
         {STATE_STORED_CODE_THREE, STATE_EVENT_BUTTON_PRESS, STATE_ROMID},
-        {STATE_STORED_CODE_THREE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID}
-};
+        {STATE_STORED_CODE_THREE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_STORED_CODE_THREE, STATE_EVENT_NONE, STATE_STORED_CODE_THREE}
+    };
 
 static inline void state_machine_init(struct state_machine_data *data)
 {
@@ -83,7 +109,7 @@ static inline void state_machine_init(struct state_machine_data *data)
     memset(&data->status4, 0, sizeof(data->status4));
 }
 
-static void state_enter(struct state_machine_data *data, state_e from, state_event_e event, state_e to)
+static void state_enter(struct state_machine_data *data, state_e from, state_e to)
 {
     if (from != to)
     {
@@ -95,23 +121,23 @@ static void state_enter(struct state_machine_data *data, state_e from, state_eve
         ESP_LOGI("SM", "ROMID");
         if(data->parameters.romid[0] == 0x00)
         {
-            //get_romid(data->parameters.romid);
+            get_romid(data->parameters.romid);
         }
         break;
     case STATE_BATTERY_V:
-        //read_battery_voltage(data);
+        read_battery_voltage(data);
         ESP_LOGI("SM", "BATV: %f", data->parameters.battery_voltage);
         break;
     case STATE_VEHICLE_SPEED:
-        //read_vehicle_speed(data);
+        read_vehicle_speed(data);
         ESP_LOGI("SM", "SPD: %f", data->parameters.vehicle_speed);
         break;
     case STATE_ENGINE_SPEED:
-        //read_engine_speed(data);
+        read_engine_speed(data);
         ESP_LOGI("SM", "RPM: %u", data->parameters.engine_speed);
         break;
     case STATE_COOLANT_TEMP:
-        //read_coolant_temp(data);
+        read_coolant_temp(data);
         ESP_LOGI("SM", "COOLANT: %d", data->parameters.coolant_temp);
         break;
     case STATE_AIRFLOW:
@@ -208,7 +234,8 @@ static inline void process_event(struct state_machine_data *data, state_event_e 
     {
         if ((data->state == state_transitions[i].from) && (event == state_transitions[i].event))
         {
-            state_enter(data, state_transitions[i].from, event, state_transitions[i].to);
+            state_enter(data, state_transitions[i].from, state_transitions[i].to);
+            break;
         }
     }
 }
@@ -216,7 +243,7 @@ static inline void process_event(struct state_machine_data *data, state_event_e 
 static inline state_event_e process_input(void)
 {
     state_event_e recieved_event;
-    if (xQueueReceive(event_queue, (void *)&recieved_event, portMAX_DELAY) == pdPASS)
+    if (xQueueReceive(event_queue, &recieved_event, pdMS_TO_TICKS(50)) == pdPASS)
     {
         return recieved_event;
     }
