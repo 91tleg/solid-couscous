@@ -190,7 +190,7 @@ static void lcd_print_state(struct state_machine_data *data)
 
     case STATE_THROTTLE_V:
         ESP_LOGI("LCD", "throttle v");
-        snprintf(lcd_buf, sizeof(lcd_buf), "TPS: %.2fv     ", data->parameters.throttle_voltage);
+        snprintf(lcd_buf, sizeof(lcd_buf), "TPS: %.2fv     ", data->parameters.throttle_signal);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
@@ -218,7 +218,7 @@ static void lcd_print_state(struct state_machine_data *data)
 
     case STATE_LOAD:
         ESP_LOGI("LCD", "load");
-        snprintf(lcd_buf, sizeof(lcd_buf), "LOAD: %d      ", data->parameters.load);
+        snprintf(lcd_buf, sizeof(lcd_buf), "LOAD: %d      ", data->parameters.engine_load);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
@@ -239,7 +239,7 @@ static void lcd_print_state(struct state_machine_data *data)
 
     case STATE_O2_V:
         ESP_LOGI("LCD", "o2");
-        snprintf(lcd_buf, sizeof(lcd_buf), "O2: %.2f ", data->parameters.o2_voltage);
+        snprintf(lcd_buf, sizeof(lcd_buf), "O2: %.2f ", data->parameters.o2_signal);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
