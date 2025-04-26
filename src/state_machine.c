@@ -3,9 +3,10 @@
 #include "esp_timer.h"
 #include "esp_log.h"
 #include "defines.h"
-#include "process_parameters.h"
 #include "button.h"
 #include "uart.h"
+#include "get_parameters.h"
+#include "ssm1.h"
 
 QueueHandle_t lcd_queue;
 
@@ -125,104 +126,106 @@ static void state_enter(struct state_machine_data *data, state_e from, state_e t
         }
         break;
     case STATE_BATTERY_V:
-        read_battery_voltage(data);
+        data->parameters.battery_voltage = get_battery_voltage();
         ESP_LOGI("SM", "BATV: %f", data->parameters.battery_voltage);
         break;
     case STATE_VEHICLE_SPEED:
-        read_vehicle_speed(data);
+        data->parameters.vehicle_speed = get_vehicle_speed();
         ESP_LOGI("SM", "SPD: %f", data->parameters.vehicle_speed);
         break;
     case STATE_ENGINE_SPEED:
-        read_engine_speed(data);
+        data->parameters.engine_speed = get_engine_speed();
         ESP_LOGI("SM", "RPM: %u", data->parameters.engine_speed);
         break;
     case STATE_COOLANT_TEMP:
-        read_coolant_temp(data);
+        data->parameters.coolant_temp = get_coolant_temp();
         ESP_LOGI("SM", "COOLANT: %d", data->parameters.coolant_temp);
         break;
     case STATE_AIRFLOW:
-        read_airflow(data);
+        data->parameters.airflow = get_airflow();
         ESP_LOGI("SM", "MAF: %f", data->parameters.airflow);
         break;
     case STATE_THROTTLE:
-        read_throttle_percentage(data);
+        data->parameters.throttle_percentage = get_throttle_percentage();
         ESP_LOGI("SM", "THROTTLE: %u", data->parameters.throttle_percentage);
         break;
     case STATE_THROTTLE_V:
-        read_throttle_signal(data);
-        ESP_LOGI("SM", "THROTTLEV: %f", data->parameters.throttle_voltage);
+        // TODO
+        data->parameters.throttle_signal = get_throttle_signal();
+        ESP_LOGI("SM", "THROTTLEV: %f", data->parameters.throttle_signal);
         break;
     case STATE_MANIP:
-        read_manifold_pressure(data);
+        // TODO
+        data->parameters.manip = get_manifold_pressure();
         ESP_LOGI("SM", "MANIP: %f", data->parameters.manip);
         break;
     case STATE_BOOST_SOLINOID:
-        read_boost_control_duty_cycle(data);
+        data->parameters.boost_solenoid = get_boost_control_duty_cycle();
         ESP_LOGI("SM", "WGC: %f", data->parameters.boost_solenoid);
         break;
     case STATE_IGNITION_TIMING:
-        read_ignition_timing(data);
+        data->parameters.ignition_timing = get_ignition_timing();
         ESP_LOGI("SM", "IGN: %u", data->parameters.ignition_timing);
         break;
     case STATE_LOAD:
-        read_load(data);
-        ESP_LOGI("SM", "LOAD: %u", data->parameters.load);
+        data->parameters.engine_load = get_engine_load();
+        ESP_LOGI("SM", "LOAD: %u", data->parameters.engine_load);
         break;
     case STATE_INJECTOR_PW:
-        read_injector_pulse_width(data);
+        data->parameters.injector_pw = get_injector_pulse_width();
         ESP_LOGI("SM", "INJ: %f", data->parameters.injector_pw);
         break;
     case STATE_IAC:
-        read_iacv_duty_cycle(data);
+        data->parameters.iac = get_iacv_duty_cycle();
         ESP_LOGI("SM", "IAC: %u", data->parameters.iac);
         break;
     case STATE_O2_V:
-        read_o2_signal(data);
-        ESP_LOGI("SM", "O2V: %f", data->parameters.o2_voltage);
+        data->parameters.o2_signal = get_o2_signal();
+        ESP_LOGI("SM", "O2V: %f", data->parameters.o2_signal);
         break;
     case STATE_TIMING_CORRECTION:
-        read_timing_correction(data);
+        data->parameters.timing_correction = get_timing_correction();
         ESP_LOGI("SM", "TIM: %u", data->parameters.timing_correction);
         break;
     case STATE_FUEL_TRIM:
-        read_fuel_trim(data);
+        data->parameters.fuel_trim = get_fuel_trim();
         ESP_LOGI("SM", "TRIM: %f", data->parameters.fuel_trim);
         break;
     case STATE_BAROP:
-        read_atmosphere_pressure(data);
+        data->parameters.barop = get_atmosphere_pressure();
         ESP_LOGI("SM", "BAROP: %f", data->parameters.barop);
         break;
     case STATE_INPUT_SWITCHES:
+        data->status0 = get_input_switches();
         ESP_LOGI("SM", "IN");
-        read_input_switches(data);
         break;
     case STATE_INOUT_SWITCHES:
+        data->status1 = get_io_switches();
         ESP_LOGI("SM", "IO");
-        read_inout_switches(data);
         break;
     case STATE_ACTIVE_CODE_ONE:
+        data->status2 = get_active_trouble_code_one();
         ESP_LOGI("SM", "A1");
-        read_active_trouble_code_one(data);
         break;
     case STATE_ACTIVE_CODE_TWO:
+        data->status3 = get_active_trouble_code_two();
         ESP_LOGI("SM", "A2");
-        read_active_trouble_code_two(data);
         break;
     case STATE_ACTIVE_CODE_THREE:
+        data->status4 = get_active_trouble_code_three();
         ESP_LOGI("SM", "A3");
-        read_active_trouble_code_three(data);
         break;
     case STATE_STORED_CODE_ONE:
+        data->status2 = get_stored_trouble_code_one();
         ESP_LOGI("SM", "S1");
-        read_stored_trouble_code_one(data);
         break;
     case STATE_STORED_CODE_TWO:
+        data->status3 = get_stored_trouble_code_two();
         ESP_LOGI("SM", "S2");
-        read_stored_trouble_code_two(data);
         break;
     case STATE_STORED_CODE_THREE:
+        data->status4 = get_stored_trouble_code_three();
         ESP_LOGI("SM", "S3");
-        read_stored_trouble_code_three(data);
         break;
     }
     xQueueSend(lcd_queue, (void *)data, portMAX_DELAY);

@@ -31,7 +31,7 @@
 struct __attribute__((packed)) ecu_params 
 {
     uint8_t romid[3];
-    uint8_t load;
+    uint8_t engine_load;
 
     uint8_t throttle_percentage;
     uint8_t ignition_timing;
@@ -47,9 +47,9 @@ struct __attribute__((packed)) ecu_params
     float vehicle_speed;
     float boost_solenoid;
     float barop;
-    float throttle_voltage;
+    float throttle_signal;
     float manip;
-    float o2_voltage;
+    float o2_signal;
     float fuel_trim;
 };
 
