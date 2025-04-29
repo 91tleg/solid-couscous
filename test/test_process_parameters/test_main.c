@@ -1,5 +1,5 @@
 #include <unity.h>
-#include "decode_parameters.h"
+#include "process_parameters.h"
 
 void setUp(void)
 {
