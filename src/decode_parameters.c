@@ -102,20 +102,20 @@ int16_t decode_coolant_temp(uint8_t value)
         "mov a2, %1\n"
         "mov a3, %2\n"
         "movi a4, 227\n"
-        "bgeu a2, a4, neg\n" // Branch if Greater Than or Eq Unsigned
+        "bgeu a2, a4, .Lneg%=\n" // Branch if Greater Than or Eq Unsigned
         "movi a4, 14\n"
-        "bltu a2, a4, add_255\n"  // Branch if Less Than Unsigned
-        "j done\n"
+        "bltu a2, a4, .Ladd_255%=\n"  // Branch if Less Than Unsigned
+        "j .Ldone%=\n"
 
-        "neg:\n"
+        ".Lneg%=:\n"
         "neg a3, a3\n"
-        "j done\n"
+        "j .Ldone%=\n"
 
-        "add_255:\n"
+        ".Ladd_255%=:\n"
         "addi a3, a3, 255\n"
-        "j done\n"
+        "j .Ldone%=\n"
 
-        "done:\n"
+        ".Ldone%=:\n"
         "mov %0, a3\n"
         : "=r"(result)
         : "r"(value), "r"(table_value)
@@ -159,15 +159,54 @@ uint8_t decode_throttle_percentage(uint8_t value)
 
 float decode_throttle_signal(uint8_t value)
 {
-    //TODO:
-    return 0.0f;
+    float result;
+    float recip = recipsf2(50.0f);
+    __asm__ volatile(
+        "mov a2, %1\n"
+        "ufloat.s f0, a2, 0\n"
+        "wfr f1, %2\n"
+        "mul.s f0, f0, f1\n"
+        "rfr %0, f0\n"
+        : "=r"(result)
+        : "r"(value), "r"(recip)
+        : "a2", "f0", "f1"
+    );
+    return result;
 }
 
 float decode_manifold_pressure(uint8_t value)
 {
-    // TODO:
-    return 0.0f;
-    // ecu_parameters.manip = (float)(read_data_from_address(MANIFOLD_PRESSURE_ADDR)) / 0.128 - 1060;
+    float result;
+    float vacuum_scale = 0.0030757f;
+    float boost_scale = 0.0015107f;
+    __asm__ volatile(
+        "mov a2, %1\n"
+        "movi a3, 100\n"
+        "mull a2, a2, a3\n"
+        "movi a3, 13568\n"
+        "sub a2, a2, a3\n"
+        "bltz a2, .Lvacuum%=\n"
+        "j .Lboost%=\n"
+
+        ".Lvacuum%=:\n"
+        "float.s f0, a2, 0\n"
+        "wfr f1, %2\n"
+        "mul.s f0, f0, f1\n"
+        "j .Ldone%=\n"
+
+        ".Lboost%=:\n"
+        "float.s f0, a2, 0\n"
+        "wfr f1, %3\n"
+        "mul.s f0, f0, f1\n"
+        "j .Ldone%=\n"
+
+        ".Ldone%=:\n"
+        "rfr %0, f0\n"
+        : "=r"(result)
+        : "r"(value), "r"(vacuum_scale), "r"(boost_scale)
+        : "a2", "a3", "f0", "f1"
+    );
+    return result; 
 }
 
 uint8_t decode_boost_control_duty_cycle(uint8_t value)
@@ -270,6 +309,9 @@ float decode_fuel_trim(uint8_t value)
 
 float decode_atmosphere_pressure(uint8_t value)
 {
+    /**
+     *  x*1.25+500 torr
+     */
     float result;
     float recip = recipsf2(0.323);
     __asm__ volatile(
