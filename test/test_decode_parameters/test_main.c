@@ -54,6 +54,12 @@ void test_decode_throttle_percentage(void)
     TEST_ASSERT_EQUAL_UINT8(99, decode_throttle_percentage(255));
 }
 
+void test_decode_manifold_pressure(void)
+{
+    TEST_ASSERT_EQUAL_FLOAT(-41.73109f, decode_manifold_pressure(0));
+    TEST_ASSERT_EQUAL_FLOAT(18.02567f, decode_manifold_pressure(255));
+}
+
 void test_decode_boost_control_duty_cycle(void)
 {
     TEST_ASSERT_EQUAL_UINT8(0, decode_boost_control_duty_cycle(0));
@@ -120,6 +126,7 @@ void app_main(void)
     RUN_TEST(test_decode_coolant_temp_normal);
     RUN_TEST(test_decode_airflow);
     RUN_TEST(test_decode_throttle_percentage);
+    RUN_TEST(test_decode_manifold_pressure);
     RUN_TEST(test_decode_boost_control_duty_cycle);
     RUN_TEST(test_decode_ignition_timing);
     RUN_TEST(test_decode_engine_load);
