@@ -1,8 +1,8 @@
 #include "get_parameters.h"
 #include "parameters.h"
 #include "read_from_address.h"
-#include "decode_parameters.h"
-#include "decode_binary.h"
+#include "process_parameters.h"
+#include "decode_trouble_codes.h"
 
 float get_battery_voltage(void)
 {
@@ -91,56 +91,56 @@ float get_atmosphere_pressure(void)
 
 struct input_switches get_input_switches(void)
 {
-    struct input_switches buf;
-    decode_input_switches(read_input_switches_addr(), &buf);
-    return buf;
+    struct input_switches dtc;
+    decode_input_switches(read_input_switches_addr(), &dtc);
+    return dtc;
 }
 
 struct io_switches get_io_switches(void)
 {
-    struct io_switches buf;
-    decode_io_switches(read_io_switches_addr(), &buf);
-    return buf;
+    struct io_switches dtc;
+    decode_io_switches(read_io_switches_addr(), &dtc);
+    return dtc;
 }
 
 struct trouble_code_one get_active_trouble_code_one(void)
 {
-    struct trouble_code_one buf;
-    decode_trouble_code_one(read_active_trouble_code_one_addr(), &buf);
-    return buf;
+    struct trouble_code_one dtc;
+    decode_trouble_code_one(read_active_trouble_code_one_addr(), &dtc);
+    return dtc;
 }
 
 struct trouble_code_two get_active_trouble_code_two(void)
 {
-    struct trouble_code_two buf;
-    decode_trouble_code_two(read_active_trouble_code_two_addr(), &buf);
-    return buf;
+    struct trouble_code_two dtc;
+    decode_trouble_code_two(read_active_trouble_code_two_addr(), &dtc);
+    return dtc;
 }
 
 struct trouble_code_three get_active_trouble_code_three(void)
 {
-    struct trouble_code_three buf;
-    decode_trouble_code_three(read_active_trouble_code_three_addr(), &buf);
-    return buf;
+    struct trouble_code_three dtc;
+    decode_trouble_code_three(read_active_trouble_code_three_addr(), &dtc);
+    return dtc;
 }
 
 struct trouble_code_one get_stored_trouble_code_one(void)
 {
-    struct trouble_code_one buf;
-    decode_trouble_code_one(read_stored_trouble_code_one_addr(), &buf);
-    return buf;
+    struct trouble_code_one dtc;
+    decode_trouble_code_one(read_stored_trouble_code_one_addr(), &dtc);
+    return dtc;
 }
 
 struct trouble_code_two get_stored_trouble_code_two(void)
 {
-    struct trouble_code_two buf;
-    decode_trouble_code_two(read_stored_trouble_code_two_addr(), &buf);
-    return buf;
+    struct trouble_code_two dtc;
+    decode_trouble_code_two(read_stored_trouble_code_two_addr(), &dtc);
+    return dtc;
 }
 
 struct trouble_code_three get_stored_trouble_code_three(void)
 {
-    struct trouble_code_three buf;
-    decode_trouble_code_three(read_stored_trouble_code_three_addr(), &buf);
-    return buf;
+    struct trouble_code_three dtc;
+    decode_trouble_code_three(read_stored_trouble_code_three_addr(), &dtc);
+    return dtc;
 }

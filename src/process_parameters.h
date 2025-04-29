@@ -1,5 +1,5 @@
-#ifndef DECODE_PARAMETERS_H  
-#define DECODE_PARAMETERS_H  
+#ifndef PROCESS_PARAMETERS_H  
+#define PROCESS_PARAMETERS_H  
 
 #include <stdint.h>
 
@@ -21,4 +21,4 @@ uint8_t decode_timing_correction(uint8_t value);
 float decode_fuel_trim(uint8_t value);
 float decode_atmosphere_pressure(uint8_t value);
 
-#endif // DECODE_PARAMETERS_H 
+#endif // PROCESS_PARAMETERS_H 

@@ -1,4 +1,4 @@
-#include "decode_parameters.h"
+#include "process_parameters.h"
 #include "parameters.h"
 
 const uint8_t coolant_lookup_table[] __attribute__((section(".rodata"))) =
