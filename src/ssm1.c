@@ -1,10 +1,6 @@
 #include "ssm1.h"
 #include "uart.h"
-
-#define GET_MSB(addr) ((addr) >> 8)
-#define GET_LSB(addr) ((addr) & 0xFF)
-#define MSB(addr) GET_MSB(addr)
-#define LSB(addr) GET_LSB(addr)
+#include "defines.h"
 
 static inline void stop_read(void)
 {
@@ -16,7 +12,6 @@ static inline void stop_read(void)
 
 void get_romid(uint8_t *buffer)
 {
-    static uint8_t romid[3] = {0};
     static const uint8_t read_command[4] = {0x78, 0x00, 0x00, 0x00};
     static const uint8_t romid_command[4] = {0x00, 0x46, 0x48, 0x49};
 
@@ -25,13 +20,13 @@ void get_romid(uint8_t *buffer)
     uart_write_bytes(UART_NUM, romid_command, sizeof(romid_command));
     uart_wait_tx_done(UART_NUM, pdMS_TO_TICKS(10000));
 
-    uart_read_bytes(UART_NUM, romid, sizeof(romid), pdMS_TO_TICKS(200));
+    uart_read_bytes(UART_NUM, buffer, sizeof(buffer), pdMS_TO_TICKS(200));
     stop_read();
 }
 
 __attribute__((weak)) uint8_t read_data_from_address(uint16_t addr)
 {
-    uint8_t read_command[4] = {0x78, (uint8_t)(MSB(addr)), (uint8_t)(LSB(addr)), 0x00};
+    uint8_t read_command[4] = {0x78, (uint8_t)(GET_MSB(addr)), (uint8_t)(GET_LSB(addr)), 0x00};
     static uint8_t answer[3] = {0};
     uart_write_bytes(UART_NUM, read_command, sizeof(read_command));
     uart_wait_tx_done(UART_NUM, pdMS_TO_TICKS(1000));
@@ -43,7 +38,7 @@ __attribute__((weak)) uint8_t read_data_from_address(uint16_t addr)
 
 void send_clear_command(uint16_t addr)
 {
-    uint8_t clear_command[4] = {0xAA, (uint8_t)(MSB(addr)), (uint8_t)(LSB(addr)), 0x00};
+    uint8_t clear_command[4] = {0xAA, (uint8_t)(GET_MSB(addr)), (uint8_t)(GET_LSB(addr)), 0x00};
     uart_write_bytes(UART_NUM, clear_command, sizeof(clear_command));
     uart_wait_tx_done(UART_NUM, pdMS_TO_TICKS(1000));
 }
