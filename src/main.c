@@ -6,12 +6,17 @@
 #include "state_machine.h"
 #include "lcd.h"
 
-void app_main()
+#ifndef UNIT_TEST
+void app_main(void)
 {
+    esp_log_level_set("*", ESP_LOG_NONE);
     ESP_LOGI("MAIN", "Starting application.....");
 
     event_queue = xQueueCreate(5, sizeof(state_event_e));
-    lcd_queue = xQueueCreate(5, sizeof(struct state_machine_data));
+    ESP_LOGI("MAIN", "Event queue created...");
+
+    lcd_queue = xQueueCreate(26, sizeof(struct state_machine_data));
+    ESP_LOGI("MAIN", "LCD queue created...");
 
     xTaskCreate(
         button_task,
@@ -24,7 +29,7 @@ void app_main()
     xTaskCreate(
         state_machine_task,
         "State Machine Task",
-        2048,
+        4096,
         NULL,
         2,
         NULL);
@@ -32,8 +37,9 @@ void app_main()
     xTaskCreate(
         lcd_task,
         "Lcd Task",
-        2048,
+        4096,
         NULL,
         1,
         NULL);
 }
+#endif
