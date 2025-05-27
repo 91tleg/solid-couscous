@@ -32,9 +32,9 @@ ECU_ADDRESSES = {
 }
 
 PORT = "/dev/cu.usbserial-1420"
-BAUD_RATE = 9600
+BAUD_RATE = 1953
 
-ecu_sim = serial.Serial(port=PORT, baudrate=BAUD_RATE, bytesize=8, parity='N', stopbits=1, timeout=1)
+ecu_sim = serial.Serial(port=PORT, baudrate=BAUD_RATE, bytesize=8, parity='E', stopbits=1, timeout=1)
 
 def log(message):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {message}")
@@ -58,11 +58,11 @@ def simulate_ecu():
                     address = (msb << 8) | lsb
                     if address in ECU_ADDRESSES:
                         log(f"Read command recieved: {hex(address)} {ECU_ADDRESSES[address]}")
-                        response_value = random.randint(220, 255)
+                        response_value = random.randint(230, 255)
                         log(f"Generated response: {response_value}")
                         response = struct.pack("BBB", msb, lsb, response_value)
                         ecu_sim.write(response)
-                        log(f"Sent response: {pretty_print(response)}")
+                        log(f"Sent response: {response.hex()}")
                     else:
                         log(f"Read command recieved for unknown address: {hex(address)}")
                 elif header == 0x00 and msb == 0x46 and lsb == 0x48 and footer == 0x49:

@@ -2,16 +2,6 @@
 #include "driver/gpio.h"
 #include "assert_handler.h"
 
-#ifdef SSM1
-    #define BAUD_RATE   (1953)
-    #define TX_PIN      (GPIO_NUM_17)
-    #define RX_PIN      (GPIO_NUM_16)
-#else
-    #define BAUD_RATE   (9600)
-    #define TX_PIN      (GPIO_NUM_1)
-    #define RX_PIN      (GPIO_NUM_3)
-#endif
-
 static void uart_configure(void)
 {
     uart_config_t uart_config = {
@@ -26,10 +16,10 @@ static void uart_configure(void)
     uart_driver_install(UART_NUM, 2048, 0, 0, NULL, 0);
 }
 
-bool initialized = false;
+bool uart_initialized = false;
 void uart_init(void)
 {
-    ASSERT(!initialized);
+    ASSERT(!uart_initialized);
     uart_configure();
-    initialized = true;
+    uart_initialized = true;
 }
