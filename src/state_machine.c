@@ -35,7 +35,7 @@ static const struct state_transition state_transitions[] __attribute__((section(
         {STATE_COOLANT_TEMP, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
         {STATE_COOLANT_TEMP, STATE_EVENT_NONE, STATE_COOLANT_TEMP},
         {STATE_AIRFLOW, STATE_EVENT_BUTTON_PRESS, STATE_THROTTLE},
-        {STATE_AIRFLOW, STATE_EVENT_BUTTON_LONG_PRESS, STATE_AIRFLOW},
+        {STATE_AIRFLOW, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
         {STATE_AIRFLOW, STATE_EVENT_NONE, STATE_AIRFLOW},
         {STATE_THROTTLE, STATE_EVENT_BUTTON_PRESS, STATE_THROTTLE_V},
         {STATE_THROTTLE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
@@ -263,6 +263,6 @@ void state_machine_task(void *parameters)
     {
         state_event_e next_event = process_input();
         process_event(&data, next_event);
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(200));
     }
 }
