@@ -7,6 +7,7 @@
 #include "uart.h"
 #include "get_parameters.h"
 #include "ssm1.h"
+#include "stdbool.h"
 
 QueueHandle_t lcd_queue;
 
@@ -42,7 +43,7 @@ static const struct state_transition state_transitions[] __attribute__((section(
         {STATE_THROTTLE, STATE_EVENT_NONE, STATE_THROTTLE},
         {STATE_THROTTLE_V, STATE_EVENT_BUTTON_PRESS, STATE_MANIP},
         {STATE_THROTTLE_V, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
-        {STATE_THROTTLE_V, STATE_EVENT_NONE, STATE_THROTTLE_V}, 
+        {STATE_THROTTLE_V, STATE_EVENT_NONE, STATE_THROTTLE_V},
         {STATE_MANIP, STATE_EVENT_BUTTON_PRESS, STATE_BOOST_SOLINOID},
         {STATE_MANIP, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
         {STATE_MANIP, STATE_EVENT_NONE, STATE_MANIP},
@@ -84,20 +85,19 @@ static const struct state_transition state_transitions[] __attribute__((section(
         {STATE_ACTIVE_CODE_ONE, STATE_EVENT_NONE, STATE_ACTIVE_CODE_ONE},
         {STATE_ACTIVE_CODE_TWO, STATE_EVENT_BUTTON_PRESS, STATE_ACTIVE_CODE_THREE},
         {STATE_ACTIVE_CODE_TWO, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
-        {STATE_ACTIVE_CODE_TWO, STATE_EVENT_NONE, STATE_ACTIVE_CODE_TWO},  
+        {STATE_ACTIVE_CODE_TWO, STATE_EVENT_NONE, STATE_ACTIVE_CODE_TWO},
         {STATE_ACTIVE_CODE_THREE, STATE_EVENT_BUTTON_PRESS, STATE_STORED_CODE_ONE},
         {STATE_ACTIVE_CODE_THREE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
-        {STATE_ACTIVE_CODE_THREE, STATE_EVENT_NONE, STATE_ACTIVE_CODE_THREE},  
+        {STATE_ACTIVE_CODE_THREE, STATE_EVENT_NONE, STATE_ACTIVE_CODE_THREE},
         {STATE_STORED_CODE_ONE, STATE_EVENT_BUTTON_PRESS, STATE_STORED_CODE_TWO},
-        {STATE_STORED_CODE_ONE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID}, 
-        {STATE_STORED_CODE_ONE, STATE_EVENT_NONE, STATE_STORED_CODE_ONE},   
+        {STATE_STORED_CODE_ONE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_STORED_CODE_ONE, STATE_EVENT_NONE, STATE_STORED_CODE_ONE},
         {STATE_STORED_CODE_TWO, STATE_EVENT_BUTTON_PRESS, STATE_STORED_CODE_THREE},
-        {STATE_STORED_CODE_TWO, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},  
-        {STATE_STORED_CODE_TWO, STATE_EVENT_NONE, STATE_STORED_CODE_TWO},  
+        {STATE_STORED_CODE_TWO, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
+        {STATE_STORED_CODE_TWO, STATE_EVENT_NONE, STATE_STORED_CODE_TWO},
         {STATE_STORED_CODE_THREE, STATE_EVENT_BUTTON_PRESS, STATE_ROMID},
         {STATE_STORED_CODE_THREE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
-        {STATE_STORED_CODE_THREE, STATE_EVENT_NONE, STATE_STORED_CODE_THREE}
-    };
+        {STATE_STORED_CODE_THREE, STATE_EVENT_NONE, STATE_STORED_CODE_THREE}};
 
 static inline void state_machine_init(struct state_machine_data *data)
 {
@@ -120,9 +120,15 @@ static void state_enter(struct state_machine_data *data, state_e from, state_e t
     {
     case STATE_ROMID:
         ESP_LOGI("SM", "ROMID");
-        if(data->parameters.romid[0] == 0x00)
+        if (data->parameters.romid[0] == 0x00)
         {
-            get_romid(data->parameters.romid);
+            bool success = get_romid(data->parameters.romid);
+            if (!success)
+            {
+                data->parameters.romid[0] = 0x00;
+                data->parameters.romid[1] = 0x00;
+                data->parameters.romid[2] = 0x00;
+            }
         }
         break;
     case STATE_BATTERY_V:
@@ -259,6 +265,7 @@ void state_machine_task(void *parameters)
     uart_init();
     ESP_LOGI("SM", "uart initialized");
     state_machine_init(&data);
+    ecu_init();
     for (;;)
     {
         state_event_e next_event = process_input();
