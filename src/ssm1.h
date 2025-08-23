@@ -1,19 +1,19 @@
-/*
- * http://www.4bc.org/vanagon/SSM_params.html
- * http://www.alcyone.org.uk/ssm/ecureverse.html
- * https://github.com/P1kachu/ssm1-gc8
- */
-
 #ifndef SSM1_H
 #define SSM1_H
 
 #include <stdint.h>
+#include <stdbool.h>
+
+/**
+ * @brief Initialize communication with the ECU.
+ */
+void ecu_init(void);
 
 /**
  * @brief Retrieves the ROM ID from the ECU.
  * @param buffer Pointer to a buffer where the ROM ID will be stored.
  */
-void get_romid(uint8_t *buffer);
+bool get_romid(uint8_t *buffer);
 
 /**
  * @brief Sends a command to read an ECU memory address.

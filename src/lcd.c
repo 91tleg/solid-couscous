@@ -6,12 +6,14 @@
 #include "state_machine.h"
 #include "ssm1.h"
 #include "defines.h"
+#include "assert_handler.h"
+#include <stdbool.h>
 
 #define I2C_MASTER_NUM          (I2C_NUM_0)
 #define I2C_MASTER_SCL_IO       (GPIO_NUM_22)
 #define I2C_MASTER_SDA_IO       (GPIO_NUM_21)
 #define SLAVE_ADDRESS_LCD       (0x27U)
-#define I2C_MASTER_FREQ_HZ      (300000U)
+#define I2C_MASTER_FREQ_HZ      (100000U)
 
 #define LCD_CLEAR_DISPLAY       (0x01U)
 #define LCD_RETURN_HOME         (0x02U)
@@ -27,7 +29,7 @@ esp_err_t err = ESP_OK;
 static i2c_master_dev_handle_t dev_handle;
 static i2c_master_bus_handle_t bus_handle;
 
-static esp_err_t i2c_master_init(void)
+static esp_err_t i2c_master_configure(void)
 {
     i2c_master_bus_config_t i2c_mst_config = {
         .clk_source = I2C_CLK_SRC_DEFAULT,
@@ -59,44 +61,68 @@ static esp_err_t i2c_master_init(void)
     return err;
 }
 
+bool i2c_initialized = false;
+static void i2c_master_init(void)
+{
+    ASSERT(!i2c_initialized);
+    i2c_master_configure();
+    i2c_initialized = true;
+}
+
 static esp_err_t lcd_send_command(uint8_t cmd)
 {
-    static uint8_t data_u, data_l;
-    static uint8_t buf[4];
+    uint8_t data_u, data_l;
+    uint8_t buf[1];
 
     data_u = GET_HIGH_NIB(cmd);
     data_l = GET_LOW_NIB(cmd);
     buf[0] = data_u | 0x0C;    // EN = 1, RS = 0
-    buf[1] = data_u | 0x08;    // EN = 0, RS = 0
-    buf[2] = data_l | 0x0C;    // EN = 1, RS = 0
-    buf[3] = data_l | 0x08;    // EN = 0, RS = 0
-    err = i2c_master_transmit(dev_handle, buf, 4, pdMS_TO_TICKS(1000));
-    if (err != ESP_OK)
-    {
-        ESP_LOGE("LCD", "Failed to send command: %s", esp_err_to_name(err));
-        return err;
-    }
+    err = i2c_master_transmit(dev_handle, buf, 1, pdMS_TO_TICKS(1000));
+    if (err != ESP_OK) goto error;
+    buf[0] = data_u | 0x08;    // EN = 0, RS = 0
+    err = i2c_master_transmit(dev_handle, buf, 1, pdMS_TO_TICKS(1000));
+    if (err != ESP_OK) goto error;
+    buf[0] = data_l | 0x0C;    // EN = 1, RS = 0
+    err = i2c_master_transmit(dev_handle, buf, 1, pdMS_TO_TICKS(1000));
+    if (err != ESP_OK) goto error;
+    buf[0] = data_l | 0x08;    // EN = 0, RS = 0
+    err = i2c_master_transmit(dev_handle, buf, 1, pdMS_TO_TICKS(1000));
+    if (err != ESP_OK) goto error;
+
+    vTaskDelay(pdMS_TO_TICKS(1));
+    return ESP_OK;
+
+    error:
+    ESP_LOGE("LCD", "Failed to send command: %s", esp_err_to_name(err));
     return err;
 }
 
 static esp_err_t lcd_send_data(char data)
 {
-    static char data_u, data_l;
-    static uint8_t buf[4];
+    char data_u, data_l;
+    uint8_t buf[1];
 
     data_u = GET_HIGH_NIB(data);
     data_l = GET_LOW_NIB(data);
     buf[0] = data_u | 0x0D;     // EN = 1, RS = 1
-    buf[1] = data_u | 0x09;     // EN = 0, RS = 1
-    buf[2] = data_l | 0x0D;     // EN = 1, RS = 1
-    buf[3] = data_l | 0x09;     // EN = 0, RS = 1
-    err = i2c_master_transmit(dev_handle, buf, 4, pdMS_TO_TICKS(1000));
-    if (err != ESP_OK)
-    {
-        ESP_LOGE("LCD", "Failed to send data: %s", esp_err_to_name(err));
-        return err;
-    }
-    return err; 
+    err = i2c_master_transmit(dev_handle, buf, 1, pdMS_TO_TICKS(1000));
+    if (err != ESP_OK) goto error;
+    buf[0] = data_u | 0x09;     // EN = 0, RS = 1
+    err = i2c_master_transmit(dev_handle, buf, 1, pdMS_TO_TICKS(1000));
+    if (err != ESP_OK) goto error;
+    buf[0] = data_l | 0x0D;     // EN = 1, RS = 1
+    err = i2c_master_transmit(dev_handle, buf, 1, pdMS_TO_TICKS(1000));
+    if (err != ESP_OK) goto error;
+    buf[0] = data_l | 0x09;     // EN = 0, RS = 1
+    err = i2c_master_transmit(dev_handle, buf, 1, pdMS_TO_TICKS(1000));
+    if (err != ESP_OK) goto error;
+
+    vTaskDelay(pdMS_TO_TICKS(1));
+    return ESP_OK;
+
+    error:
+    ESP_LOGE("LCD", "Failed to send data: %s", esp_err_to_name(err));
+    return err;
 }
 
 static inline void lcd_clear(void)
@@ -107,12 +133,7 @@ static inline void lcd_clear(void)
 
 static void lcd_set_cursor(uint8_t col, uint8_t row)
 {
-    uint8_t cmd = LCD_SET_CURSOR;
-    if (row == 1)
-    {
-        cmd |= 0x40;
-    }
-    cmd |= col;
+    uint8_t cmd = LCD_SET_CURSOR | (row == 1 ? 0x40 : 0x00) | col;
     lcd_send_command(cmd);
 }
 
@@ -149,6 +170,7 @@ static void lcd_send_string(char *str)
     while (*str)
     {
         lcd_send_data(*str++);
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
 
@@ -159,8 +181,16 @@ static void lcd_print_state(struct state_machine_data *data)
     {
     case STATE_ROMID:
         ESP_LOGI("LCD", "romid");
-        snprintf(lcd_buf, sizeof(lcd_buf), "ROM ID: %02X.%02X.%02X ",
-                 data->parameters.romid[0], data->parameters.romid[1], data->parameters.romid[2]);
+        if (data->parameters.romid[0] == 0x00 &&
+            data->parameters.romid[1] == 0x00 &&
+            data->parameters.romid[2] == 0x00) {
+            snprintf(lcd_buf, sizeof(lcd_buf), "ROM ID: --.--.--");
+        } else {
+            snprintf(lcd_buf, sizeof(lcd_buf), "ROM ID: %02X.%02X.%02X",
+                    data->parameters.romid[0],
+                    data->parameters.romid[1],
+                    data->parameters.romid[2]);
+        }
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         lcd_set_cursor(0, 1);
