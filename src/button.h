@@ -5,12 +5,6 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
-#define BTN_PIN             (34)
-#define DEBOUNCE_TIME       (50000UL)
-#define SHORT_PRESS_TIME    (400000UL)
-#define DOUBLE_CLICK_TIME   (400000UL)
-#define LONG_PRESS_TIME     (1000000UL)
-
 extern QueueHandle_t event_queue;
 
 typedef enum

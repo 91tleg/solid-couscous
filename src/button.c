@@ -4,47 +4,53 @@
 #include "driver/gpio.h"
 #include "state_machine.h"
 
+#define BTN_PIN             (GPIO_NUM_27)
+#define DEBOUNCE_TIME_US    (1000UL)
+#define SHORT_PRESS_TIME_US (300000UL)
+#define LONG_PRESS_TIME_US  (800000UL)
+#define BUTTON_PRESSED      (0)
+#define BUTTON_RELEASED     (1)
+
 QueueHandle_t event_queue;
 
 typedef enum
 {
-    OCS_INIT,    // Initial state
-    OCS_DOWN,    // Button pressed
-    OCS_UP,      // Button released
-    OCS_COUNT,   // Count the number of clicks
-    OCS_PRESS,   // button is hold down
-    OCS_PRESSEND // Button released after long press
+    BUTTON_STATE_INIT,
+    BUTTON_STATE_PRESSED,
+    BUTTON_STATE_RELEASED,
+    BUTTON_STATE_COUNTING,
+    BUTTON_STATE_HELD,
+    BUTTON_STATE_HELD_RELEASED,
 } button_state_e;
 
-static button_state_e state = OCS_INIT;
-static unsigned long last_debounce_time = 0;
 static unsigned long press_start_time = 0;
 static unsigned int click_count = 0;
-static state_event_e event = STATE_EVENT_NONE;
+static button_state_e state = BUTTON_STATE_INIT;
 
-static int debounce(int value)
+static int debounce(int raw_state)
 {
-    static int last_state = 1;
-    static int debounced_state = 1;
-    unsigned long current_time = esp_timer_get_time();
-    if (value != last_state)
+    static int debounced_state = BUTTON_RELEASED;
+    static int last_state = BUTTON_RELEASED;
+    static int64_t last_change_time_us = 0;
+    int64_t now = esp_timer_get_time();
+
+    if (raw_state != last_state)
     {
-        last_debounce_time = current_time;
+        last_change_time_us = now;
+        last_state = raw_state;
     }
-    if ((current_time - last_debounce_time) > DEBOUNCE_TIME)
+    if ((now - last_change_time_us) >= DEBOUNCE_TIME_US)
     {
-        debounced_state = value;
+        debounced_state = last_state;
     }
-    last_state = value;
     return debounced_state;
 }
 
 static inline void reset_button_state(void)
 {
-    state = OCS_INIT;
+    state = BUTTON_STATE_INIT;
     click_count = 0;
     press_start_time = 0;
-    event = STATE_EVENT_NONE;
 }
 
 static void button_init(void)
@@ -63,51 +69,49 @@ static state_event_e read_state_event(void)
 {
     int button_state = gpio_get_level(BTN_PIN);
     int debounced_state = debounce(button_state);
-    unsigned long current_time = esp_timer_get_time();
+    unsigned long current_time = (unsigned long)(esp_timer_get_time());
     unsigned long press_duration = (current_time - press_start_time);
+    state_event_e event = STATE_EVENT_NONE;
 
     switch (state)
     {
-    case OCS_INIT:
-        ESP_LOGI("BTN", "OCS_INIT");
-        if (debounced_state == 0) // Pressed
+    case BUTTON_STATE_INIT:
+        ESP_LOGI("BTN", "Init");
+        if (debounced_state == BUTTON_PRESSED)
         {
-            state = OCS_DOWN;
+            state = BUTTON_STATE_PRESSED;
             press_start_time = current_time;
             click_count = 0;
+            event = STATE_EVENT_NONE;
         }
         break;
-
-    case OCS_DOWN:
-        ESP_LOGI("BTN", "OCS_DOWN");
+    case BUTTON_STATE_PRESSED:
+        ESP_LOGI("BTN", "Pressed");
         if (debounced_state == 1)
         {
-            state = OCS_UP;
+            state = BUTTON_STATE_RELEASED;
             press_start_time = current_time;
         }
-        else if ((debounced_state == 0) && (press_duration > LONG_PRESS_TIME))
+        else if ((debounced_state == BUTTON_PRESSED) && (press_duration > LONG_PRESS_TIME_US))
         {
             event = STATE_EVENT_BUTTON_LONG_PRESS;
             ESP_LOGI("BTN", "Long Press");
-            state = OCS_PRESS;
+            state = BUTTON_STATE_HELD;
         }
         break;
-
-    case OCS_UP:
-        ESP_LOGI("BTN", "OCS_UP");
+    case BUTTON_STATE_RELEASED:
+        ESP_LOGI("BTN", "Released");
         click_count++;
-        state = OCS_COUNT;
+        state = BUTTON_STATE_COUNTING;
         break;
-
-    case OCS_COUNT:
-        if (debounced_state == 0)
+    case BUTTON_STATE_COUNTING:
+        if (debounced_state == BUTTON_PRESSED)
         {
-            state = OCS_DOWN;
+            state = BUTTON_STATE_PRESSED;
             press_start_time = current_time;
         }
-        else if ((current_time - press_start_time) >= DOUBLE_CLICK_TIME)
+        else if ((press_duration >= SHORT_PRESS_TIME_US) || (click_count == 2))
         {
-            // Times up, determine single or double press
             if (click_count == 1)
             {
                 event = STATE_EVENT_BUTTON_PRESS;
@@ -121,18 +125,16 @@ static state_event_e read_state_event(void)
             reset_button_state();
         }
         break;
-
-    case OCS_PRESS:
-        ESP_LOGI("BTN", "OCS_PRESS");
-        if (debounced_state == 1)
+    case BUTTON_STATE_HELD:
+        ESP_LOGI("BTN", "Held");
+        if (debounced_state == BUTTON_RELEASED)
         {
-            state = OCS_PRESSEND;
+            state = BUTTON_STATE_HELD_RELEASED;
             press_start_time = current_time;
         }
         break;
-
-    case OCS_PRESSEND:
-        ESP_LOGI("BTN", "OCS_PRESSEND");
+    case BUTTON_STATE_HELD_RELEASED:
+        ESP_LOGI("BTN", "Held released");
         reset_button_state();
         break;
     }
@@ -143,15 +145,14 @@ void button_task(void *parameters)
 {
     button_init();
     reset_button_state();
-    static state_event_e event = STATE_EVENT_NONE;
 
     for (;;)
     {
-        event = read_state_event();
+        state_event_e event = read_state_event();
         if (event != STATE_EVENT_NONE)
         {
-            xQueueSend(event_queue, (void *)&event, portMAX_DELAY);
+            xQueueSend(event_queue, &event, portMAX_DELAY);
         }
-        vTaskDelay(pdMS_TO_TICKS(15));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
