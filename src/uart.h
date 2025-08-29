@@ -15,5 +15,7 @@
 #endif
 
 void uart_init(void);
+bool send_byte(uint8_t b);
+bool read_byte(uint8_t *b);
 
 #endif
