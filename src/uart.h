@@ -15,7 +15,29 @@
 #endif
 
 void uart_init(void);
-bool send_byte(uint8_t b);
-bool read_byte(uint8_t *b);
+
+static inline bool send_bytes(const uint8_t *data, uint8_t len)
+{
+    int written = uart_write_bytes(UART_NUM, data, len);
+    return (written == (int)len);
+}
+
+static inline int read_bytes(uint8_t *buf, uint8_t max_len)
+{
+    size_t available = 0;
+    uart_get_buffered_data_len(UART_NUM, &available);
+
+    if (available == 0)
+    {
+        return 0;
+    }
+
+    if (available > max_len)
+    {
+        available = max_len;
+    }
+
+    return uart_read_bytes(UART_NUM, buf, available, 0);
+}
 
 #endif
