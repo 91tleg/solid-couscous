@@ -34,10 +34,24 @@ ECU_ADDRESSES = {
 PORT = "/dev/cu.usbserial-1420"
 BAUD_RATE = 1953
 
-ecu_sim = serial.Serial(port=PORT, baudrate=BAUD_RATE, bytesize=8, parity='E', stopbits=1, timeout=1)
+ecu_sim = serial.Serial(
+    port=PORT,
+    baudrate=BAUD_RATE,
+    bytesize=8,
+    parity='E',
+    stopbits=1,
+    timeout=1
+)
+
+sensor_values = {addr: random.randint(0, 255) for addr in ECU_ADDRESSES.keys()}
 
 def log(message):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {message}")
+
+def update_sensor_values():
+    for addr in sensor_values:
+        delta = random.randint(-1, 1)
+        sensor_values[addr] = max(0, min(255, sensor_values[addr] + delta))
 
 def pretty_print(data):
     print_hex = " ".join(f"{b:02X}" for b in data)
@@ -46,39 +60,70 @@ def pretty_print(data):
 
 def simulate_ecu():
     log(f"ECU Simulator running on {PORT} at {BAUD_RATE} baud")
+
+    streaming = False
+    stream_addr = None
+    romid_mode = False
+
+    romid_bytes = (0x71, 0x36, 0x00)
+
     while True:
-        if ecu_sim.in_waiting >= 4:  # Expecting 0x78 MSB LSB 0x00
-            request = ecu_sim.read(4)
-            log(f"Received request: {pretty_print(request)}")
-            if len(request) == 4:
-                header, msb, lsb, footer = struct.unpack("BBBB", request)
-                if header == 0x12 and msb == 0x00 and lsb == 0x00 and footer == 0x00:
-                    log(f"Stop command recieved")
-                elif header == 0x78 and footer == 0x00:
-                    address = (msb << 8) | lsb
-                    if address in ECU_ADDRESSES:
-                        log(f"Read command recieved: {hex(address)} {ECU_ADDRESSES[address]}")
-                        response_value = random.randint(230, 255)
-                        log(f"Generated response: {response_value}")
-                        response = struct.pack("BBB", msb, lsb, response_value)
-                        ecu_sim.write(response)
-                        log(f"Sent response: {response.hex()}")
-                    else:
-                        log(f"Read command recieved for unknown address: {hex(address)}")
-                elif header == 0x00 and msb == 0x46 and lsb == 0x48 and footer == 0x49:
-                    log(f"Get romid command recieved")
-                    response = struct.pack("BBB", 0x71, 0x36, 0)
-                    ecu_sim.write(response)
-                    log(f"Sent romid: {pretty_print(response)}")
-                elif header == 0xAA and footer == 0x00:
-                    address = (msb << 8) | lsb
-                    if address in ECU_ADDRESSES:
-                        log(f"Clear command recieved: {hex(address)} {ECU_ADDRESSES[address]}")
-                    else: 
-                        log(f"Clear command recieved for unknown address: {hex(address)}")
-                else:
-                    log(f"UNKNOWN COMMAND: {pretty_print(request)}")
-        time.sleep(0.01)
+        update_sensor_values()
+
+        while ecu_sim.in_waiting >= 4:
+            peek = ecu_sim.read(1)
+            while peek[0] not in (0x78, 0x12):
+                log(f"Discarding stray byte: {peek[0]:02X}")
+                peek = ecu_sim.read(1)
+            rest = ecu_sim.read(3)
+            request = peek + rest
+            header, msb, lsb, footer = struct.unpack("BBBB", request)
+
+            # Stop command
+            if header == 0x12 and msb == 0x00 and lsb == 0x00 and footer == 0x00:
+                log("Stop command received")
+                streaming = False
+                stream_addr = None
+                romid_mode = False
+                continue
+
+            # ROMID command
+            elif header == 0x78 and msb == 0xFF and lsb == 0xFE and footer == 0x00:
+                log("ROMID command received")
+                streaming = True
+                romid_mode = True
+                stream_addr = None
+                continue
+
+            # Read command
+            elif header == 0x78 and footer == 0x00:
+                addr = (msb << 8) | lsb
+                log(f"Read request for {hex(addr)} ({ECU_ADDRESSES.get(addr, 'UNKNOWN')})")
+                streaming = True
+                romid_mode = False
+                stream_addr = addr
+                continue
+
+            else:
+                log(f"Unknown command: {pretty_print(request)}")
+
+        if streaming:
+            if romid_mode:
+                # ROMID response format: FF FE junk b1 b2 b3
+                packet = struct.pack("BBBBBB", 0xFF, 0xFE, 0x00, *romid_bytes)
+                ecu_sim.write(packet)
+                ecu_sim.flush()
+                log(f"Sent ROMID response: {' '.join(f'{b:02X}' for b in packet)}")
+            elif stream_addr is not None:
+                # Read response format: MSB LSB DATA
+                value = sensor_values.get(stream_addr, random.randint(0, 255))
+                packet = struct.pack("BBB", (stream_addr >> 8) & 0xFF, stream_addr & 0xFF, value)
+                ecu_sim.write(packet)
+                ecu_sim.flush()
+                log(f"Sent data {value} for {hex(stream_addr)} ({ECU_ADDRESSES.get(stream_addr)}): {' '.join(f'{b:02X}' for b in packet)}")
+
+        time.sleep(0.05)
+
 
 if __name__ == "__main__":
     simulate_ecu()
