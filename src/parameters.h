@@ -35,7 +35,7 @@ struct __attribute__((packed)) ecu_params
 
     uint8_t throttle_percentage;
     uint8_t ignition_timing;
-    uint8_t iac;
+    uint8_t vehicle_speed;
     uint8_t timing_correction;
 
     uint16_t engine_speed;
@@ -44,7 +44,7 @@ struct __attribute__((packed)) ecu_params
     float injector_pw;
     float battery_voltage;
     float airflow;
-    float vehicle_speed;
+    float iac;
     float boost_solenoid;
     float barop;
     float throttle_signal;
@@ -118,6 +118,17 @@ struct trouble_code_three
     uint8_t parking_sw : 1;
 };
 
-extern const uint8_t coolant_lookup_table[];
+union param_type
+{
+    float f;
+    uint16_t u16;
+    int16_t i16;
+    uint8_t u8;
+    struct input_switches in_sw;
+    struct io_switches io_sw;
+    struct trouble_code_one tc_one;
+    struct trouble_code_two tc_two;
+    struct trouble_code_three tc_three;
+};
 
-#endif
+#endif // PARAMETERS_H
