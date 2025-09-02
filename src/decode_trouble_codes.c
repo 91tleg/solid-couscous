@@ -1,7 +1,8 @@
 #include "decode_trouble_codes.h"
 
-void decode_input_switches(uint8_t value, struct input_switches *dtc)
+union param_type decode_input_switches(uint8_t value)
 {
+    union param_type dtc;
     __asm__ volatile(
         "mov a2, %7\n"
         "movi a4, 1\n"
@@ -33,14 +34,18 @@ void decode_input_switches(uint8_t value, struct input_switches *dtc)
         "srli a3, a2, 0\n"
         "and a3, a3, a4\n"
         "mov %6, a3\n"
-        : "=r"(dtc->ignition), "=r"(dtc->auto_trans), "=r"(dtc->test_mode),
-          "=r"(dtc->read_mode), "=r"(dtc->neutral), "=r"(dtc->park), "=r"(dtc->california)
+        : "=r"(dtc.in_sw.ignition), "=r"(dtc.in_sw.auto_trans),
+          "=r"(dtc.in_sw.test_mode), "=r"(dtc.in_sw.read_mode),
+          "=r"(dtc.in_sw.neutral), "=r"(dtc.in_sw.park),
+          "=r"(dtc.in_sw.california)
         : "r"(value)
         : "a2", "a3", "a4");
+    return dtc;
 }
 
-void decode_io_switches(uint8_t value, struct io_switches *dtc)
+union param_type decode_io_switches(uint8_t value)
 {
+    union param_type dtc;
     __asm__ volatile(
         "mov a2, %8\n"
         "movi a4, 1\n"
@@ -76,14 +81,18 @@ void decode_io_switches(uint8_t value, struct io_switches *dtc)
         "srli a3, a2, 0\n"
         "and a3, a3, a4\n"
         "mov %7, a3\n"
-        : "=r"(dtc->idle_sw), "=r"(dtc->ac_sw), "=r"(dtc->ac_relay), "=r"(dtc->rad_fan),
-          "=r"(dtc->fuel_pump), "=r"(dtc->purge_valve), "=r"(dtc->pinging), "=r"(dtc->press_exch)
+        : "=r"(dtc.io_sw.idle_sw), "=r"(dtc.io_sw.ac_sw),
+          "=r"(dtc.io_sw.ac_relay), "=r"(dtc.io_sw.rad_fan),
+          "=r"(dtc.io_sw.fuel_pump), "=r"(dtc.io_sw.purge_valve),
+          "=r"(dtc.io_sw.pinging), "=r"(dtc.io_sw.press_exch)
         : "r"(value)
         : "a2", "a3", "a4");
+    return dtc;
 }
 
-void decode_trouble_code_one(uint8_t value, struct trouble_code_one *dtc)
+union param_type decode_trouble_code_one(uint8_t value)
 {
+    union param_type dtc;
     __asm__ volatile(
         "mov a2, %7\n"
         "movi a4, 1\n"
@@ -115,14 +124,18 @@ void decode_trouble_code_one(uint8_t value, struct trouble_code_one *dtc)
         "srli a3, a2, 1\n"
         "and a3, a3, a4\n"
         "mov %6, a3\n"
-        : "=r"(dtc->crank), "=r"(dtc->starter), "=r"(dtc->cam), "=r"(dtc->inj_1),
-          "=r"(dtc->inj_2), "=r"(dtc->inj_3), "=r"(dtc->inj_4)
+        : "=r"(dtc.tc_one.crank), "=r"(dtc.tc_one.starter),
+          "=r"(dtc.tc_one.cam), "=r"(dtc.tc_one.inj_1),
+          "=r"(dtc.tc_one.inj_2), "=r"(dtc.tc_one.inj_3),
+          "=r"(dtc.tc_one.inj_4)
         : "r"(value)
         : "a2", "a3", "a4");
+    return dtc;
 }
 
-void decode_trouble_code_two(uint8_t value, struct trouble_code_two *dtc)
+union param_type decode_trouble_code_two(uint8_t value)
 {
+    union param_type dtc;
     __asm__ volatile(
         "mov a2, %8\n"
         "movi a4, 1\n"
@@ -158,14 +171,18 @@ void decode_trouble_code_two(uint8_t value, struct trouble_code_two *dtc)
         "srli a3, a2, 0\n"
         "and a3, a3, a4\n"
         "mov %7, a3\n"
-        : "=r"(dtc->temp), "=r"(dtc->knock), "=r"(dtc->maf), "=r"(dtc->iacv),
-          "=r"(dtc->tps), "=r"(dtc->oxygen), "=r"(dtc->vss), "=r"(dtc->purge)
+        : "=r"(dtc.tc_two.temp), "=r"(dtc.tc_two.knock), 
+          "=r"(dtc.tc_two.maf), "=r"(dtc.tc_two.iacv),
+          "=r"(dtc.tc_two.tps), "=r"(dtc.tc_two.oxygen), 
+          "=r"(dtc.tc_two.vss), "=r"(dtc.tc_two.purge)
         : "r"(value)
         : "a2", "a3", "a4");
+    return dtc;
 }
 
-void decode_trouble_code_three(uint8_t value, struct trouble_code_three *dtc)
+union param_type decode_trouble_code_three(uint8_t value)
 {
+    union param_type dtc;
     __asm__ volatile(
         "mov a2, %7\n"
         "movi a4, 1\n"
@@ -197,8 +214,11 @@ void decode_trouble_code_three(uint8_t value, struct trouble_code_three *dtc)
         "srli a3, a2, 0\n"
         "and a3, a3, a4\n"
         "mov %6, a3\n"
-        : "=r"(dtc->fuel_trim), "=r"(dtc->idle_sw), "=r"(dtc->wgc), "=r"(dtc->baro),
-          "=r"(dtc->wrong_maf), "=r"(dtc->neutral_sw), "=r"(dtc->parking_sw)
+        : "=r"(dtc.tc_three.fuel_trim), "=r"(dtc.tc_three.idle_sw), 
+          "=r"(dtc.tc_three.wgc), "=r"(dtc.tc_three.baro),
+          "=r"(dtc.tc_three.wrong_maf), "=r"(dtc.tc_three.neutral_sw), 
+          "=r"(dtc.tc_three.parking_sw)
         : "r"(value)
         : "a2", "a3", "a4");
+    return dtc;
 }
