@@ -3,53 +3,116 @@
 #include "defines.h"
 #include "esp_log.h"
 
-void ecu_init(void)
-{
-    static const uint8_t init_command[4] = {0x78, 0x00, 0x00, 0x00};
-    uart_write_bytes(UART_NUM, init_command, sizeof(init_command));
-    uart_wait_tx_done(UART_NUM, pdMS_TO_TICKS(50));
-}
+#define GET_MSB(addr) ((uint8_t)(((uint16_t)(addr)) >> 8U))
+#define GET_LSB(addr) ((uint8_t)((uint16_t)(addr) & 0xFFU))
 
-static inline void stop_read(void)
+static void stop_read(void)
 {
     static const uint8_t stop_command[4] = {0x12, 0x00, 0x00, 0x00};
-    uart_write_bytes(UART_NUM, stop_command, sizeof(stop_command));
-    uart_wait_tx_done(UART_NUM, pdMS_TO_TICKS(20));
+    send_bytes(stop_command, sizeof(stop_command));
 }
 
-bool get_romid(uint8_t *buffer)
+void read_romid(struct romid_ctx *ctx)
 {
-    static const uint8_t romid_command[4] = {0x00, 0x46, 0x48, 0x49};
-    uart_write_bytes(UART_NUM, romid_command, sizeof(romid_command));
-    uart_wait_tx_done(UART_NUM, pdMS_TO_TICKS(10));
+    static const uint8_t cmds[2][4] = {
+        {0x78, 0xFF, 0xFE, 0x00},
+        {0x00, 0xFF, 0xFF, 0x00}};
 
-    int len = uart_read_bytes(UART_NUM, buffer, 3, pdMS_TO_TICKS(50));
-    stop_read();
-
-    if (len == 3 && buffer[0] != 0x00) {
-        ESP_LOGI("ROMID", "Got ECU ROMID: %02X %02X %02X",
-                 buffer[0], buffer[1], buffer[2]);
-        return true;
+    if (ctx->done)
+    {
+        return;
     }
 
-    return false;
+    send_bytes(cmds[ctx->cmd_index], sizeof(cmds[ctx->cmd_index]));
+    ctx->cmd_index ^= 1;
+
+    uint8_t buf[4];
+    int len = read_bytes(buf, sizeof(buf));
+
+    for (int i = 0; i < len; i++)
+    {
+        switch (ctx->state)
+        {
+        case ROMID_WAIT_FF:
+            if (buf[i] == 0xFF)
+            {
+                ctx->state = ROMID_WAIT_FE;
+            }
+            break;
+
+        case ROMID_WAIT_FE:
+            ctx->state = (buf[i] == 0xFE) ? ROMID_ACCEPT_ANY : ROMID_WAIT_FF;
+            break;
+
+        case ROMID_ACCEPT_ANY:
+            ctx->state = ROMID_GOT_BYTE1;
+            break;
+
+        case ROMID_GOT_BYTE1:
+            ctx->romid_out[0] = buf[i];
+            ctx->state = ROMID_GOT_BYTE2;
+            break;
+
+        case ROMID_GOT_BYTE2:
+            ctx->romid_out[1] = buf[i];
+            ctx->state = ROMID_GOT_BYTE3;
+            break;
+
+        case ROMID_GOT_BYTE3:
+            ctx->romid_out[2] = buf[i];
+            stop_read();
+            ctx->done = true;
+            ctx->sent = false;
+            break;
+        }
+        if (ctx->done)
+        {
+            break;
+        }
+    }
 }
 
-uint8_t read_data_from_address(uint16_t addr)
+void read_data_from_address(struct read_ctx *ctx)
 {
-    uint8_t read_command[4] = {0x78, (uint8_t)(GET_MSB(addr)), (uint8_t)(GET_LSB(addr)), 0x00};
-    uint8_t answer[3] = {0};
-    uart_write_bytes(UART_NUM, read_command, sizeof(read_command));
-    uart_wait_tx_done(UART_NUM, pdMS_TO_TICKS(10));
+    uint8_t read_command[4] = {0x78, GET_MSB(ctx->addr), GET_LSB(ctx->addr), 0x00};
 
-    uart_read_bytes(UART_NUM, answer, 3, pdMS_TO_TICKS(50));
-    stop_read();
-    return answer[2]; // Return the data byte
+    if (!ctx->sent)
+    {
+        send_bytes(read_command, sizeof(read_command));
+        ctx->sent = true;
+        ctx->read_state = READ_WAIT_MSB;
+    }
+
+    uint8_t buf[4];
+    int len = read_bytes(buf, sizeof(buf));
+
+    for (int i = 0; i < len; i++)
+    {
+        uint8_t b = buf[i];
+
+        switch (ctx->read_state)
+        {
+        case READ_WAIT_MSB:
+            if (b == read_command[1])
+            {
+                ctx->read_state = READ_WAIT_LSB;
+            }
+            break;
+
+        case READ_WAIT_LSB:
+            ctx->read_state = (b == read_command[2]) ? READ_WAIT_DATA : READ_WAIT_MSB;
+            break;
+
+        case READ_WAIT_DATA:
+            ctx->data = b;
+            ctx->read_state = READ_WAIT_MSB;
+            break;
+        }
+    }
 }
 
-void send_clear_command(uint16_t addr)
+void send_clear_command(struct read_ctx *ctx)
 {
-    uint8_t clear_command[4] = {0xAA, (uint8_t)(GET_MSB(addr)), (uint8_t)(GET_LSB(addr)), 0x00};
-    uart_write_bytes(UART_NUM, clear_command, sizeof(clear_command));
-    uart_wait_tx_done(UART_NUM, pdMS_TO_TICKS(10));
+    uint8_t clear_command[4] = {0xAA, GET_MSB(ctx->addr), GET_LSB(ctx->addr), 0x00};
+    send_bytes(clear_command, sizeof(clear_command));
 }
