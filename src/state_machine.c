@@ -4,10 +4,8 @@
 #include "esp_log.h"
 #include "defines.h"
 #include "button.h"
-#include "uart.h"
 #include "get_parameters.h"
 #include "ssm1.h"
-#include "stdbool.h"
 
 QueueHandle_t lcd_queue;
 
@@ -99,15 +97,10 @@ static const struct state_transition state_transitions[] __attribute__((section(
         {STATE_STORED_CODE_THREE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
         {STATE_STORED_CODE_THREE, STATE_EVENT_NONE, STATE_STORED_CODE_THREE}};
 
-static inline void state_machine_init(struct state_machine_data *data)
+static void state_machine_init(struct state_machine_data *data)
 {
+    memset(data, 0, sizeof(*data));
     data->state = STATE_ROMID;
-    memset(&data->parameters, 0, sizeof(data->parameters));
-    memset(&data->status0, 0, sizeof(data->status0));
-    memset(&data->status1, 0, sizeof(data->status1));
-    memset(&data->status2, 0, sizeof(data->status2));
-    memset(&data->status3, 0, sizeof(data->status3));
-    memset(&data->status4, 0, sizeof(data->status4));
 }
 
 static void state_enter(struct state_machine_data *data, state_e from, state_e to)
@@ -115,126 +108,119 @@ static void state_enter(struct state_machine_data *data, state_e from, state_e t
     if (from != to)
     {
         data->state = to;
+        reset_ctx_sent_flag(from);
+        //uart_flush_input(UART_NUM);
     }
     switch (data->state)
     {
     case STATE_ROMID:
         ESP_LOGI("SM", "ROMID");
-        if (data->parameters.romid[0] == 0x00)
-        {
-            bool success = get_romid(data->parameters.romid);
-            if (!success)
-            {
-                data->parameters.romid[0] = 0x00;
-                data->parameters.romid[1] = 0x00;
-                data->parameters.romid[2] = 0x00;
-            }
-        }
+        get_romid(data->parameters.romid);
         break;
     case STATE_BATTERY_V:
-        data->parameters.battery_voltage = get_battery_voltage();
+        data->parameters.battery_voltage = get_param(STATE_BATTERY_V).f;
         ESP_LOGI("SM", "BATV: %f", data->parameters.battery_voltage);
         break;
     case STATE_VEHICLE_SPEED:
-        data->parameters.vehicle_speed = get_vehicle_speed();
-        ESP_LOGI("SM", "SPD: %f", data->parameters.vehicle_speed);
+        data->parameters.vehicle_speed = get_param(STATE_VEHICLE_SPEED).u8;
+        ESP_LOGI("SM", "SPD: %u", data->parameters.vehicle_speed);
         break;
     case STATE_ENGINE_SPEED:
-        data->parameters.engine_speed = get_engine_speed();
+        data->parameters.engine_speed = get_param(STATE_ENGINE_SPEED).u16;
         ESP_LOGI("SM", "RPM: %u", data->parameters.engine_speed);
         break;
     case STATE_COOLANT_TEMP:
-        data->parameters.coolant_temp = get_coolant_temp();
+        data->parameters.coolant_temp = get_param(STATE_COOLANT_TEMP).i16;
         ESP_LOGI("SM", "COOLANT: %d", data->parameters.coolant_temp);
         break;
     case STATE_AIRFLOW:
-        data->parameters.airflow = get_airflow();
+        data->parameters.airflow = get_param(STATE_AIRFLOW).f;
         ESP_LOGI("SM", "MAF: %f", data->parameters.airflow);
         break;
     case STATE_THROTTLE:
-        data->parameters.throttle_percentage = get_throttle_percentage();
+        data->parameters.throttle_percentage = get_param(STATE_THROTTLE).u8;
         ESP_LOGI("SM", "THROTTLE: %u", data->parameters.throttle_percentage);
         break;
     case STATE_THROTTLE_V:
-        // TODO
-        data->parameters.throttle_signal = get_throttle_signal();
+        data->parameters.throttle_signal = get_param(STATE_THROTTLE_V).f;
         ESP_LOGI("SM", "THROTTLEV: %f", data->parameters.throttle_signal);
         break;
     case STATE_MANIP:
-        // TODO
-        data->parameters.manip = get_manifold_pressure();
+        data->parameters.manip = get_param(STATE_MANIP).f;
         ESP_LOGI("SM", "MANIP: %f", data->parameters.manip);
         break;
     case STATE_BOOST_SOLINOID:
-        data->parameters.boost_solenoid = get_boost_control_duty_cycle();
+        data->parameters.boost_solenoid = get_param(STATE_BOOST_SOLINOID).f;
         ESP_LOGI("SM", "WGC: %f", data->parameters.boost_solenoid);
         break;
     case STATE_IGNITION_TIMING:
-        data->parameters.ignition_timing = get_ignition_timing();
+        data->parameters.ignition_timing = get_param(STATE_IGNITION_TIMING).u8;
         ESP_LOGI("SM", "IGN: %u", data->parameters.ignition_timing);
         break;
     case STATE_LOAD:
-        data->parameters.engine_load = get_engine_load();
+        data->parameters.engine_load = get_param(STATE_LOAD).u8;
         ESP_LOGI("SM", "LOAD: %u", data->parameters.engine_load);
         break;
     case STATE_INJECTOR_PW:
-        data->parameters.injector_pw = get_injector_pulse_width();
+        data->parameters.injector_pw = get_param(STATE_INJECTOR_PW).f;
         ESP_LOGI("SM", "INJ: %f", data->parameters.injector_pw);
         break;
     case STATE_IAC:
-        data->parameters.iac = get_iacv_duty_cycle();
-        ESP_LOGI("SM", "IAC: %u", data->parameters.iac);
+        data->parameters.iac = get_param(STATE_IAC).f;
+        ESP_LOGI("SM", "IAC: %f", data->parameters.iac);
         break;
     case STATE_O2_V:
-        data->parameters.o2_signal = get_o2_signal();
+        data->parameters.o2_signal = get_param(STATE_O2_V).f;
         ESP_LOGI("SM", "O2V: %f", data->parameters.o2_signal);
         break;
     case STATE_TIMING_CORRECTION:
-        data->parameters.timing_correction = get_timing_correction();
+        data->parameters.timing_correction = get_param(STATE_TIMING_CORRECTION).u8;
         ESP_LOGI("SM", "TIM: %u", data->parameters.timing_correction);
         break;
     case STATE_FUEL_TRIM:
-        data->parameters.fuel_trim = get_fuel_trim();
+        data->parameters.fuel_trim = get_param(STATE_FUEL_TRIM).f;
         ESP_LOGI("SM", "TRIM: %f", data->parameters.fuel_trim);
         break;
     case STATE_BAROP:
-        data->parameters.barop = get_atmosphere_pressure();
+        data->parameters.barop = get_param(STATE_BAROP).f;
         ESP_LOGI("SM", "BAROP: %f", data->parameters.barop);
         break;
     case STATE_INPUT_SWITCHES:
-        data->status0 = get_input_switches();
+        data->status0 = get_param(STATE_INPUT_SWITCHES).in_sw;
         ESP_LOGI("SM", "IN");
         break;
     case STATE_INOUT_SWITCHES:
-        data->status1 = get_io_switches();
+        data->status1 = get_param(STATE_INOUT_SWITCHES).io_sw;
         ESP_LOGI("SM", "IO");
         break;
     case STATE_ACTIVE_CODE_ONE:
-        data->status2 = get_active_trouble_code_one();
+        data->status2 = get_param(STATE_ACTIVE_CODE_ONE).tc_one;
         ESP_LOGI("SM", "A1");
         break;
     case STATE_ACTIVE_CODE_TWO:
-        data->status3 = get_active_trouble_code_two();
+        data->status3 = get_param(STATE_ACTIVE_CODE_TWO).tc_two;
         ESP_LOGI("SM", "A2");
         break;
     case STATE_ACTIVE_CODE_THREE:
-        data->status4 = get_active_trouble_code_three();
+        data->status4 = get_param(STATE_ACTIVE_CODE_THREE).tc_three;
         ESP_LOGI("SM", "A3");
         break;
     case STATE_STORED_CODE_ONE:
-        data->status2 = get_stored_trouble_code_one();
+        data->status2 = get_param(STATE_STORED_CODE_ONE).tc_one;
         ESP_LOGI("SM", "S1");
         break;
     case STATE_STORED_CODE_TWO:
-        data->status3 = get_stored_trouble_code_two();
+        data->status3 = get_param(STATE_STORED_CODE_TWO).tc_two;
         ESP_LOGI("SM", "S2");
         break;
     case STATE_STORED_CODE_THREE:
-        data->status4 = get_stored_trouble_code_three();
+        data->status4 = get_param(STATE_STORED_CODE_THREE).tc_three;
         ESP_LOGI("SM", "S3");
         break;
     }
-    xQueueSend(lcd_queue, (void *)data, portMAX_DELAY);
+
+    struct state_machine_data copy = *data;
+    xQueueSend(lcd_queue, &copy, portMAX_DELAY);
 }
 
 static inline void process_event(struct state_machine_data *data, state_event_e event)
@@ -251,10 +237,10 @@ static inline void process_event(struct state_machine_data *data, state_event_e 
 
 static inline state_event_e process_input(void)
 {
-    state_event_e recieved_event;
-    if (xQueueReceive(event_queue, &recieved_event, pdMS_TO_TICKS(50)) == pdPASS)
+    state_event_e received_event;
+    if (xQueueReceive(event_queue, &received_event, pdMS_TO_TICKS(0)) == pdPASS)
     {
-        return recieved_event;
+        return received_event;
     }
     return STATE_EVENT_NONE;
 }
@@ -262,10 +248,8 @@ static inline state_event_e process_input(void)
 void state_machine_task(void *parameters)
 {
     static struct state_machine_data data;
-    uart_init();
-    ESP_LOGI("SM", "uart initialized");
     state_machine_init(&data);
-    ecu_init();
+
     for (;;)
     {
         state_event_e next_event = process_input();

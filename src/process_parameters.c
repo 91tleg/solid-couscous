@@ -1,5 +1,4 @@
 #include "process_parameters.h"
-#include "parameters.h"
 
 const uint8_t coolant_lookup_table[] __attribute__((section(".rodata"))) =
 {
@@ -29,7 +28,7 @@ __attribute__((always_inline)) static inline float recipsf2(float a)
 {
     float result;
     __asm__ volatile(
-        "wfr f1, %1\n" // Write from register
+        "wfr f1, %1\n"         // Write from register
         "recip0.s f0, f1\n"    // Store the recip in f0
         "const.s f2, 1\n"      // Load 1 into f1
         "msub.s f2, f1, f0\n"  // f2 = f2 - (f1 * f0)
@@ -37,17 +36,16 @@ __attribute__((always_inline)) static inline float recipsf2(float a)
         "const.s f2, 1\n"      // Load 1 into f1 again
         "msub.s f2, f1, f0\n"  // f2 = f2 - (f1 * f0)
         "maddn.s f0, f0, f2\n" // f0 = f0 + (f0 * f2)
-        "rfr %0, f0\n" // Read from register
+        "rfr %0, f0\n"         // Read from register
         : "=r"(result)
         : "r"(a)
-        : "f0", "f1", "f2"
-    );
+        : "f0", "f1", "f2");
     return result;
 }
 
-float decode_battery_voltage(uint8_t value)
+union param_type decode_battery_voltage(uint8_t value)
 {
-    float result;
+    union param_type result;
     float recip = recipsf2(100.0f);
     __asm__ volatile(
         "mov a2, %1\n"
@@ -57,46 +55,44 @@ float decode_battery_voltage(uint8_t value)
         "wfr f1, %2\n"
         "mul.s f0, f0, f1\n"
         "rfr %0, f0\n"
-        : "=r"(result)
+        : "=r"(result.f)
         : "r"(value), "r"(recip)
-        : "a2", "a3", "f0", "f1"
-    );
+        : "a2", "a3", "f0", "f1");
     return result;
 }
 
-uint8_t decode_vehicle_speed(uint8_t value)
+union param_type decode_vehicle_speed(uint8_t value)
 {
-    uint8_t result;
+    union param_type result;
     __asm__ volatile(
         "mov a2, %1\n"
         "movi a3, 10\n"
         "mull a2, a2, a3\n"
         "srli a2, a2, 4\n"
         "mov %0, a2\n"
-        : "=r"(result)
+        : "=r"(result.u8)
         : "r"(value)
-        : "a2", "a3"
-    );
+        : "a2", "a3");
     return result;
 }
 
-uint16_t decode_engine_speed(uint8_t value)
+union param_type decode_engine_speed(uint8_t value)
 {
-    uint16_t result;
+    union param_type result;
     __asm__ volatile(
         "mov a2, %1\n"
         "movi a3, 25\n"
         "mull a2, a2, a3\n"
         "mov %0, a2\n"
-        : "=r"(result)
+        : "=r"(result.u16)
         : "r"(value)
-        : "a2", "a3"
-    );
+        : "a2", "a3");
     return result;
 }
-int16_t decode_coolant_temp(uint8_t value)
+
+union param_type decode_coolant_temp(uint8_t value)
 {
-    int16_t result;
+    union param_type result;
     uint8_t table_value = coolant_lookup_table[value];
     __asm__ volatile(
         "mov a2, %1\n"
@@ -104,7 +100,7 @@ int16_t decode_coolant_temp(uint8_t value)
         "movi a4, 227\n"
         "bgeu a2, a4, .Lneg%=\n" // Branch if Greater Than or Eq Unsigned
         "movi a4, 14\n"
-        "bltu a2, a4, .Ladd_255%=\n"  // Branch if Less Than Unsigned
+        "bltu a2, a4, .Ladd_255%=\n" // Branch if Less Than Unsigned
         "j .Ldone%=\n"
 
         ".Lneg%=:\n"
@@ -117,16 +113,15 @@ int16_t decode_coolant_temp(uint8_t value)
 
         ".Ldone%=:\n"
         "mov %0, a3\n"
-        : "=r"(result)
+        : "=r"(result.i16)
         : "r"(value), "r"(table_value)
-        : "a2", "a3", "a4"
-    );
+        : "a2", "a3", "a4");
     return result;
 }
 
-float decode_airflow(uint8_t value)
+union param_type decode_airflow(uint8_t value)
 {
-    float result;
+    union param_type result;
     float recip = recipsf2(50.0f);
     __asm__ volatile(
         "mov a2, %1\n"
@@ -134,32 +129,30 @@ float decode_airflow(uint8_t value)
         "wfr f1, %2\n"
         "mul.s f0, f0, f1\n"
         "rfr %0, f0\n"
-        : "=r"(result)
+        : "=r"(result.f)
         : "r"(value), "r"(recip)
-        : "a2", "f0", "f1"
-    );
+        : "a2", "f0", "f1");
     return result;
 }
 
-uint8_t decode_throttle_percentage(uint8_t value)
+union param_type decode_throttle_percentage(uint8_t value)
 {
-    uint8_t result;
+    union param_type result;
     __asm__ volatile(
         "mov a2, %1\n"
         "movi a3, 100\n"
         "mull a2, a2, a3\n"
         "srli a2, a2, 8\n"
         "mov %0, a2\n"
-        : "=r"(result)
+        : "=r"(result.u8)
         : "r"(value)
-        : "a2", "a3"
-    );
+        : "a2", "a3");
     return result;
 }
 
-float decode_throttle_signal(uint8_t value)
+union param_type decode_throttle_signal(uint8_t value)
 {
-    float result;
+    union param_type result;
     float recip = recipsf2(50.0f);
     __asm__ volatile(
         "mov a2, %1\n"
@@ -167,16 +160,15 @@ float decode_throttle_signal(uint8_t value)
         "wfr f1, %2\n"
         "mul.s f0, f0, f1\n"
         "rfr %0, f0\n"
-        : "=r"(result)
+        : "=r"(result.f)
         : "r"(value), "r"(recip)
-        : "a2", "f0", "f1"
-    );
+        : "a2", "f0", "f1");
     return result;
 }
 
-float decode_manifold_pressure(uint8_t value)
+union param_type decode_manifold_pressure(uint8_t value)
 {
-    float result;
+    union param_type result;
     float vacuum_scale = 0.0030757f;
     float boost_scale = 0.0015107f;
     __asm__ volatile(
@@ -202,42 +194,44 @@ float decode_manifold_pressure(uint8_t value)
 
         ".Ldone%=:\n"
         "rfr %0, f0\n"
-        : "=r"(result)
+        : "=r"(result.f)
         : "r"(value), "r"(vacuum_scale), "r"(boost_scale)
-        : "a2", "a3", "f0", "f1"
-    );
-    return result; 
+        : "a2", "a3", "f0", "f1");
+    return result;
 }
 
-uint8_t decode_boost_control_duty_cycle(uint8_t value)
+union param_type decode_boost_control_duty_cycle(uint8_t value)
 {
-    uint8_t result;
+    union param_type result;
     __asm__ volatile(
         "mov a2, %1\n"
         "movi a3, 100\n"
         "mull a2, a2, a3\n"
         "srli a2, a2, 8\n"
         "mov %0, a2\n"
-        : "=r"(result) 
+        : "=r"(result.u8)
         : "r"(value)
-        : "a2", "a3"
-    );
+        : "a2", "a3");
     return result;
 }
 
-uint8_t decode_ignition_timing(uint8_t value)
+union param_type decode_ignition_timing(uint8_t value)
 {
-    return value; 
+    union param_type result;
+    result.u8 = value;
+    return result;
 }
 
-uint8_t decode_engine_load(uint8_t value)
+union param_type decode_engine_load(uint8_t value)
 {
-    return value;
+    union param_type result;
+    result.u8 = value;
+    return result;
 }
 
-float decode_injector_pulse_width(uint8_t value)
+union param_type decode_injector_pulse_width(uint8_t value)
 {
-    float result;
+    union param_type result;
     float recip = recipsf2(7.8f);
     __asm__ volatile(
         "mov a2, %1\n"
@@ -245,30 +239,28 @@ float decode_injector_pulse_width(uint8_t value)
         "wfr f1, %2\n"
         "mul.s f0, f0, f1\n"
         "rfr %0, f0\n"
-        : "=r"(result)
+        : "=r"(result.f)
         : "r"(value), "r"(recip)
-        : "a2", "f0", "f1"
-    );
+        : "a2", "f0", "f1");
     return result;
 }
 
-float decode_iacv_duty_cycle(uint8_t value)
+union param_type decode_iacv_duty_cycle(uint8_t value)
 {
-    float result;
+    union param_type result;
     __asm__ volatile(
         "mov a2, %1\n"
         "ufloat.s f0, a2, 1\n"
         "rfr %0, f0\n"
-        : "=r"(result)
+        : "=r"(result.f)
         : "r"(value)
-        : "a2", "f0"
-    );
+        : "a2", "f0");
     return result;
 }
 
-float decode_o2_signal(uint8_t value)
+union param_type decode_o2_signal(uint8_t value)
 {
-    float result;
+    union param_type result;
     float recip = recipsf2(100.0f);
     __asm__ volatile(
         "mov a2, %1\n"
@@ -276,21 +268,22 @@ float decode_o2_signal(uint8_t value)
         "wfr f1, %2\n"
         "mul.s f0, f0, f1\n"
         "rfr %0, f0\n"
-        : "=r"(result)
+        : "=r"(result.f)
         : "r"(value), "r"(recip)
-        : "a2", "f0", "f1"
-    );
+        : "a2", "f0", "f1");
     return result;
 }
 
-uint8_t decode_timing_correction(uint8_t value)
+union param_type decode_timing_correction(uint8_t value)
 {
-    return value;
+    union param_type result;
+    result.u8 = value;
+    return result;
 }
 
-float decode_fuel_trim(uint8_t value)
+union param_type decode_fuel_trim(uint8_t value)
 {
-    float result;
+    union param_type result;
     float recip = recipsf2(1.28f);
     __asm__ volatile(
         "mov a2, %1\n"
@@ -300,34 +293,25 @@ float decode_fuel_trim(uint8_t value)
         "wfr f1, %2\n"
         "mul.s f0, f0, f1\n"
         "rfr %0, f0\n"
-        : "=r"(result)
+        : "=r"(result.f)
         : "r"(value), "r"(recip)
-        : "a2", "a3", "f0", "f1"
-    );
+        : "a2", "a3", "f0", "f1");
     return result;
 }
 
-float decode_atmosphere_pressure(uint8_t value)
+union param_type decode_atmosphere_pressure(uint8_t value)
 {
-    /**
-     *  x*1.25+500 torr
-     */
-    float result;
-    float recip = recipsf2(0.323);
+    union param_type result;
     __asm__ volatile(
-        "movi a2, 930\n"
-
-        "mov a3, %1\n"
-        "float.s f0, a3, 0\n"
+        "mov a2, %1\n"
+        "float.s f0, a2, 0\n"
         "wfr f1, %2\n"
         "mul.s f0, f0, f1\n"
-
-        "float.s f1, a2, 0\n"
-        "sub.s f1, f1, f0\n"
-        "rfr %0, f1\n"
-        : "=r"(result)
-        : "r"(value), "r"(recip)
-        : "a2", "a3", "f0", "f1"
-    );
+        "wfr f1, %3\n"
+        "add.s f0, f0, f1\n"
+        "rfr %0, f0\n"
+        : "=r"(result.f)
+        : "r"(value), "r"(1.25f), "r"(500.0f)
+        : "a2", "f0", "f1");
     return result;
 }
