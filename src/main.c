@@ -5,18 +5,22 @@
 #include "button.h"
 #include "state_machine.h"
 #include "lcd.h"
+#include "uart.h"
 
 #ifndef UNIT_TEST
 void app_main(void)
 {
     esp_log_level_set("*", ESP_LOG_NONE);
-    ESP_LOGI("MAIN", "Starting application.....");
+    ESP_LOGI("MAIN", "Starting application.");
+
+    uart_init();
+    ESP_LOGI("MAIN", "uart initialized.");
 
     event_queue = xQueueCreate(5, sizeof(state_event_e));
-    ESP_LOGI("MAIN", "Event queue created...");
+    ESP_LOGI("MAIN", "Event queue created.");
 
     lcd_queue = xQueueCreate(26, sizeof(struct state_machine_data));
-    ESP_LOGI("MAIN", "LCD queue created...");
+    ESP_LOGI("MAIN", "LCD queue created.");
 
     xTaskCreate(
         button_task,
@@ -42,4 +46,4 @@ void app_main(void)
         1,
         NULL);
 }
-#endif
+#endif  // UNIT_TEST
