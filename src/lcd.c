@@ -233,7 +233,7 @@ static void lcd_print_state(struct state_machine_data *data)
 
     case STATE_VEHICLE_SPEED:
         ESP_LOGI("LCD", "speed");
-        snprintf(lcd_buf, sizeof(lcd_buf), "VSPD: %.0fmph   ", data->parameters.vehicle_speed);
+        snprintf(lcd_buf, sizeof(lcd_buf), "VSPD: %dmph   ", data->parameters.vehicle_speed);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
@@ -312,7 +312,7 @@ static void lcd_print_state(struct state_machine_data *data)
 
     case STATE_IAC:
         ESP_LOGI("LCD", "iac");
-        snprintf(lcd_buf, sizeof(lcd_buf), "IAC: %d        ", data->parameters.iac);
+        snprintf(lcd_buf, sizeof(lcd_buf), "IAC: %.1f        ", data->parameters.iac);
         lcd_set_cursor(0, 0);
         lcd_send_string(lcd_buf);
         break;
