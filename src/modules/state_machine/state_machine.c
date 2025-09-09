@@ -1,13 +1,17 @@
 #include "state_machine.h"
-#include "string.h"
-#include "esp_timer.h"
-#include "esp_log.h"
 #include "defines.h"
-#include "button.h"
-#include "get_parameters.h"
-#include "ssm1.h"
+#include "modules/button/button.h"
+#include "modules/assert/assert_handler.h"
+#include "modules/params/get_parameters.h"
+#include "modules/ecu/ssm1.h"
+#include "drivers/uart/uart.h"
+#include <string.h>
+#include <esp_timer.h>
+#include <esp_log.h>
 
-QueueHandle_t lcd_queue;
+#define TAG  "SM"
+
+static QueueHandle_t lcd_queue = NULL;
 
 struct state_transition
 {
@@ -101,6 +105,13 @@ static void state_machine_init(struct state_machine_data *data)
 {
     memset(data, 0, sizeof(*data));
     data->state = STATE_ROMID;
+
+    if (lcd_queue == NULL)
+    {
+        lcd_queue = xQueueCreate(26, sizeof(struct state_machine_data));
+        ESP_LOGI(TAG, "Lcd queue initialized");
+        ASSERT(lcd_queue != NULL);
+    }
 }
 
 static void state_enter(struct state_machine_data *data, state_e from, state_e to)
@@ -238,6 +249,7 @@ static inline void process_event(struct state_machine_data *data, state_event_e 
 static inline state_event_e process_input(void)
 {
     state_event_e received_event;
+    QueueHandle_t event_queue = button_get_event_queue();
     if (xQueueReceive(event_queue, &received_event, pdMS_TO_TICKS(0)) == pdPASS)
     {
         return received_event;
@@ -245,10 +257,16 @@ static inline state_event_e process_input(void)
     return STATE_EVENT_NONE;
 }
 
+QueueHandle_t state_machine_get_lcd_queue(void)
+{
+    return lcd_queue;
+}
+
 void state_machine_task(void *parameters)
 {
     static struct state_machine_data data;
     state_machine_init(&data);
+    uart_init();
 
     for (;;)
     {
