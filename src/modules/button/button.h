@@ -13,7 +13,6 @@ typedef enum
     STATE_EVENT_NONE
 } state_event_e;
 
-void button_init(void);
 QueueHandle_t button_get_event_queue(void);
 void button_task(void *parameters);
 

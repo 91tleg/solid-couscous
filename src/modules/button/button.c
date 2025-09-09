@@ -129,7 +129,7 @@ static state_event_e read_state_event(void)
     return event;
 }
 
-void button_init(void)
+static void button_init(void)
 {
     button_driver_init();
 
@@ -148,6 +148,7 @@ QueueHandle_t button_get_event_queue(void)
 
 void button_task(void *parameters)
 {
+    button_init();
     state_event_e event;
     
     for (;;)
