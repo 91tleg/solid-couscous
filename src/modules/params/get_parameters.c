@@ -1,8 +1,8 @@
 #include "get_parameters.h"
 #include "process_parameters.h"
 #include "decode_trouble_codes.h"
-#include "ssm1.h"
 #include "defines.h"
+#include "modules/ecu/ssm1.h"
 #include <string.h>
 
 #define MAX_PARAMS  (26)
