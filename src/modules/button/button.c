@@ -1,17 +1,16 @@
 #include "button.h"
-#include "esp_timer.h"
-#include "esp_log.h"
-#include "driver/gpio.h"
-#include "state_machine.h"
+#include "drivers/button/button.h"
+#include "modules/assert/assert_handler.h"
+#include <esp_timer.h>
+#include <esp_log.h>
 
-#define BTN_PIN             (GPIO_NUM_27)
+
+#define TAG                 "BTN"
 #define DEBOUNCE_TIME_US    (1000UL)
 #define SHORT_PRESS_TIME_US (300000UL)
 #define LONG_PRESS_TIME_US  (800000UL)
 #define BUTTON_PRESSED      (0)
 #define BUTTON_RELEASED     (1)
-
-QueueHandle_t event_queue;
 
 typedef enum
 {
@@ -23,6 +22,7 @@ typedef enum
     BUTTON_STATE_HELD_RELEASED,
 } button_state_e;
 
+static QueueHandle_t event_queue = NULL;
 static unsigned long press_start_time = 0;
 static unsigned int click_count = 0;
 static button_state_e state = BUTTON_STATE_INIT;
@@ -53,21 +53,9 @@ static inline void reset_button_state(void)
     press_start_time = 0;
 }
 
-static void button_init(void)
-{
-    gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << BTN_PIN),
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE};
-
-    gpio_config(&io_conf);
-}
-
 static state_event_e read_state_event(void)
 {
-    int button_state = gpio_get_level(BTN_PIN);
+    int button_state = button_driver_read();
     int debounced_state = debounce(button_state);
     unsigned long current_time = (unsigned long)(esp_timer_get_time());
     unsigned long press_duration = (current_time - press_start_time);
@@ -76,7 +64,7 @@ static state_event_e read_state_event(void)
     switch (state)
     {
     case BUTTON_STATE_INIT:
-        ESP_LOGI("BTN", "Init");
+        ESP_LOGI(TAG, "Init");
         if (debounced_state == BUTTON_PRESSED)
         {
             state = BUTTON_STATE_PRESSED;
@@ -86,7 +74,7 @@ static state_event_e read_state_event(void)
         }
         break;
     case BUTTON_STATE_PRESSED:
-        ESP_LOGI("BTN", "Pressed");
+        ESP_LOGI(TAG, "Pressed");
         if (debounced_state == 1)
         {
             state = BUTTON_STATE_RELEASED;
@@ -95,12 +83,12 @@ static state_event_e read_state_event(void)
         else if ((debounced_state == BUTTON_PRESSED) && (press_duration > LONG_PRESS_TIME_US))
         {
             event = STATE_EVENT_BUTTON_LONG_PRESS;
-            ESP_LOGI("BTN", "Long Press");
+            ESP_LOGI(TAG, "Long Press");
             state = BUTTON_STATE_HELD;
         }
         break;
     case BUTTON_STATE_RELEASED:
-        ESP_LOGI("BTN", "Released");
+        ESP_LOGI(TAG, "Released");
         click_count++;
         state = BUTTON_STATE_COUNTING;
         break;
@@ -115,18 +103,18 @@ static state_event_e read_state_event(void)
             if (click_count == 1)
             {
                 event = STATE_EVENT_BUTTON_PRESS;
-                ESP_LOGI("BTN", "Single Press");
+                ESP_LOGI(TAG, "Single Press");
             }
             else if (click_count == 2)
             {
                 event = STATE_EVENT_BUTTON_DOUBLE_PRESS;
-                ESP_LOGI("BTN", "Double Press");
+                ESP_LOGI(TAG, "Double Press");
             }
             reset_button_state();
         }
         break;
     case BUTTON_STATE_HELD:
-        ESP_LOGI("BTN", "Held");
+        ESP_LOGI(TAG, "Held");
         if (debounced_state == BUTTON_RELEASED)
         {
             state = BUTTON_STATE_HELD_RELEASED;
@@ -134,21 +122,37 @@ static state_event_e read_state_event(void)
         }
         break;
     case BUTTON_STATE_HELD_RELEASED:
-        ESP_LOGI("BTN", "Held released");
+        ESP_LOGI(TAG, "Held released");
         reset_button_state();
         break;
     }
     return event;
 }
 
+void button_init(void)
+{
+    button_driver_init();
+
+    if (event_queue == NULL)
+    {
+        event_queue = xQueueCreate(10, sizeof(state_event_e));
+        ESP_LOGI(TAG, "Event queue initialized");
+        ASSERT(event_queue != NULL);
+    }
+}
+
+QueueHandle_t button_get_event_queue(void) 
+{
+    return event_queue;
+}
+
 void button_task(void *parameters)
 {
-    button_init();
-    reset_button_state();
-
+    state_event_e event;
+    
     for (;;)
     {
-        state_event_e event = read_state_event();
+        event = read_state_event();
         if (event != STATE_EVENT_NONE)
         {
             xQueueSend(event_queue, &event, portMAX_DELAY);
