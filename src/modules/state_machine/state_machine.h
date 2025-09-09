@@ -1,12 +1,10 @@
 #ifndef STATE_MACHINE_H
 #define STATE_MACHINE_H
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "parameters.h"
-
-extern QueueHandle_t lcd_queue;
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/queue.h>
+#include "modules/params/parameters.h"
 
 typedef enum
 {
@@ -49,6 +47,7 @@ struct state_machine_data
     struct trouble_code_three status4;
 };
 
+QueueHandle_t state_machine_get_lcd_queue(void);
 void state_machine_task(void *parameters);
 
 #endif

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "state_machine.h"
+#include "modules/state_machine/state_machine.h"
 
 typedef enum
 {

@@ -2,7 +2,7 @@
 #define GET_PARAMETERS_H 
 
 #include <stdint.h>
-#include "state_machine.h"
+#include "modules/state_machine/state_machine.h"
 
 void get_romid(uint8_t *romid_out);
 union param_type get_param(state_e state);

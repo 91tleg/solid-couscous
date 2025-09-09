@@ -1,26 +1,18 @@
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/queue.h"
-#include "esp_log.h"
-#include "button.h"
-#include "state_machine.h"
-#include "lcd.h"
-#include "uart.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/queue.h>
+#include <esp_log.h>
+#include "modules/button/button.h"
+#include "modules/state_machine/state_machine.h"
+#include "modules/lcd/lcd.h"
+
+#define TAG  "MAIN"
 
 #ifndef UNIT_TEST
 void app_main(void)
 {
     esp_log_level_set("*", ESP_LOG_NONE);
-    ESP_LOGI("MAIN", "Starting application.");
-
-    uart_init();
-    ESP_LOGI("MAIN", "uart initialized.");
-
-    event_queue = xQueueCreate(5, sizeof(state_event_e));
-    ESP_LOGI("MAIN", "Event queue created.");
-
-    lcd_queue = xQueueCreate(26, sizeof(struct state_machine_data));
-    ESP_LOGI("MAIN", "LCD queue created.");
+    ESP_LOGI(TAG, "Starting application");
 
     xTaskCreate(
         button_task,

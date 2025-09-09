@@ -1,6 +1,7 @@
 #ifndef UART_H
 #define UART_H
-#include "driver/uart.h"
+#include <driver/uart.h>
+#include <driver/gpio.h>
 
 #ifdef SSM1
     #define BAUD_RATE   (1953)
@@ -40,4 +41,4 @@ static inline int read_bytes(uint8_t *buf, uint8_t max_len)
     return uart_read_bytes(UART_NUM, buf, available, 0);
 }
 
-#endif
+#endif // UART_H
