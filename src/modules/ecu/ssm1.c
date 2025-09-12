@@ -1,7 +1,6 @@
 #include "ssm1.h"
 #include "drivers/uart/uart.h"
 #include "defines.h"
-#include <esp_log.h>
 
 #define GET_MSB(addr) ((uint8_t)(((uint16_t)(addr)) >> 8U))
 #define GET_LSB(addr) ((uint8_t)((uint16_t)(addr) & 0xFFU))

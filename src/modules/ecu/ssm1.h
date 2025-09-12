@@ -1,9 +1,9 @@
 #ifndef SSM1_H
 #define SSM1_H
 
+#include "state_defs.h"
 #include <stdint.h>
 #include <stdbool.h>
-#include "modules/state_machine/state_machine.h"
 
 typedef enum
 {

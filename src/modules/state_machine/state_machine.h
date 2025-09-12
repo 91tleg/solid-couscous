@@ -1,53 +1,32 @@
 #ifndef STATE_MACHINE_H
 #define STATE_MACHINE_H
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <freertos/queue.h>
-#include "modules/params/parameters.h"
+#include "state_defs.h"
 
-typedef enum
-{
-    STATE_ROMID,
-    STATE_BATTERY_V,
-    STATE_VEHICLE_SPEED,
-    STATE_ENGINE_SPEED,
-    STATE_COOLANT_TEMP,
-    STATE_AIRFLOW,
-    STATE_THROTTLE,
-    STATE_THROTTLE_V,
-    STATE_MANIP,
-    STATE_BOOST_SOLINOID,
-    STATE_IGNITION_TIMING,   
-    STATE_LOAD,
-    STATE_INJECTOR_PW,
-    STATE_IAC,
-    STATE_O2_V,
-    STATE_TIMING_CORRECTION,
-    STATE_FUEL_TRIM,
-    STATE_BAROP,
-    STATE_INPUT_SWITCHES,
-    STATE_INOUT_SWITCHES,
-    STATE_ACTIVE_CODE_ONE,
-    STATE_ACTIVE_CODE_TWO,
-    STATE_ACTIVE_CODE_THREE,
-    STATE_STORED_CODE_ONE,
-    STATE_STORED_CODE_TWO,
-    STATE_STORED_CODE_THREE
-} state_e;
+/**
+ * @brief Initializes the state machine data struct.
+ *
+ * @param data Pointer to the state machine data struct to initialize.
+ */
+void state_machine_init(struct state_machine_data *data);
 
-struct state_machine_data
-{
-    state_e state;
-    struct ecu_params parameters;
-    struct input_switches status0;
-    struct io_switches status1;
-    struct trouble_code_one status2;
-    struct trouble_code_two status3;
-    struct trouble_code_three status4;
-};
+/**
+ * @brief Handles entering a new state in the state machine.
+ *
+ * @param data Pointer to the state machine data struct.
+ * @param from The previous state.
+ * @param to The new state to enter.
+ */
+void state_enter(struct state_machine_data *data, state_e from, state_e to);
 
-QueueHandle_t state_machine_get_lcd_queue(void);
-void state_machine_task(void *parameters);
+/**
+ * @brief Processes an event in the state machine.
+ *
+ * Evaluates the event and updates the state machine.
+ *
+ * @param data Pointer to the state machine data struct.
+ * @param event The event to process.
+ */
+void process_event(struct state_machine_data *data, state_event_e event);
 
-#endif
+#endif // STATE_MACHINE_H
