@@ -1,18 +1,17 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <freertos/queue.h>
-#include <esp_log.h>
-#include "modules/button/button.h"
-#include "modules/state_machine/state_machine.h"
-#include "modules/lcd/lcd.h"
+#include "core/log/log.h"
+#include "modules/button/button_task.h"
+#include "modules/state_machine/state_machine_task.h"
+#include "modules/lcd/lcd_task.h"
 
-#define TAG  "MAIN"
+#define TAG  "Main"
 
 #ifndef UNIT_TEST
 void app_main(void)
 {
-    esp_log_level_set("*", ESP_LOG_NONE);
-    ESP_LOGI(TAG, "Starting application");
+    log_level_set(LOG_LEVEL_NONE);
+    LOGI(TAG, "Starting application");
 
     xTaskCreate(
         button_task,
@@ -20,7 +19,8 @@ void app_main(void)
         2048,
         NULL,
         3,
-        NULL);
+        NULL
+    );
 
     xTaskCreate(
         state_machine_task,
@@ -28,7 +28,8 @@ void app_main(void)
         4096,
         NULL,
         2,
-        NULL);
+        NULL
+    );
 
     xTaskCreate(
         lcd_task,
@@ -36,6 +37,7 @@ void app_main(void)
         4096,
         NULL,
         1,
-        NULL);
+        NULL
+    );
 }
 #endif  // UNIT_TEST
