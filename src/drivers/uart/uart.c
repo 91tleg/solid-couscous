@@ -1,5 +1,8 @@
 #include "uart.h"
+#include <driver/uart.h>
+#include "board.h"
 
+#define BAUD_RATE        (1953)
 #define UART_RX_BUF_SIZE (512)
 #define UART_TX_BUF_SIZE (1024)
 
@@ -28,4 +31,28 @@ void uart_init(void)
         NULL,
         0
     );
+}
+
+bool send_bytes(const uint8_t *data, uint8_t len)
+{
+    int written = uart_write_bytes(UART_NUM, data, len);
+    return (written == (int)len);
+}
+
+int read_bytes(uint8_t *buf, uint8_t max_len)
+{
+    size_t available = 0;
+    uart_get_buffered_data_len(UART_NUM, &available);
+
+    if (available == 0)
+    {
+        return 0;
+    }
+
+    if (available > max_len)
+    {
+        available = max_len;
+    }
+
+    return uart_read_bytes(UART_NUM, buf, (uint32_t)available, 0);
 }

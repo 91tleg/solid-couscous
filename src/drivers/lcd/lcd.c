@@ -1,13 +1,13 @@
 #include "lcd.h"
 #include "drivers/i2c/i2c.h"
+#include "core/log/log.h"
 #include <stdbool.h>
 #include <esp_err.h>
-#include <esp_log.h>
 #include <driver/i2c_master.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#define TAG                     "LCD"
+#define TAG                     "Lcd"
 #define LCD_CLEAR_DISPLAY       (0x01U)
 #define LCD_RETURN_HOME         (0x02U)
 #define LCD_ENTRY_MODE_SET      (0x06U)
@@ -65,7 +65,7 @@ static esp_err_t lcd_write_nibble(uint8_t nibble, bool is_data)
     return err;
 
 error:
-    ESP_LOGE(TAG, "Failed to send nibble: %s", esp_err_to_name(err));
+    LOGE(TAG, "Failed to send nibble: %s", esp_err_to_name(err));
     return err;
 }
 
@@ -91,7 +91,7 @@ static esp_err_t lcd_send_command(uint8_t cmd)
     return err;
 
 error:
-    ESP_LOGE(TAG, "Failed to send command: %s", esp_err_to_name(err));
+    LOGE(TAG, "Failed to send command: %s", esp_err_to_name(err));
     return err;
 }
 
@@ -117,7 +117,7 @@ static esp_err_t lcd_send_data(char data)
     return err;
 
 error:
-    ESP_LOGE(TAG, "Failed to send data: %s", esp_err_to_name(err));
+    LOGE(TAG, "Failed to send data: %s", esp_err_to_name(err));
     return err;
 }
 
