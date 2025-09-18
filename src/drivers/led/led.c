@@ -1,7 +1,7 @@
 #include "led.h"
 #include <driver/gpio.h>
+#include "board.h"
 
-#define LED_PIN     (GPIO_NUM_2)
 #define LED_ON      (1)
 #define LED_OFF     (0)
 

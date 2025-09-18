@@ -1,7 +1,6 @@
 #include "button.h"
 #include <driver/gpio.h>
-
-#define BTN_PIN (GPIO_NUM_27)
+#include "board.h"
 
 void button_driver_init(void)
 {

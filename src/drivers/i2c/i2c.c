@@ -1,10 +1,8 @@
 #include "i2c.h"
-#include <esp_log.h>
+#include "core/log/log.h"
+#include "board.h"
 
 #define TAG                 "I2C"
-#define I2C_MASTER_NUM      (I2C_NUM_0)
-#define I2C_MASTER_SCL_IO   (GPIO_NUM_22)
-#define I2C_MASTER_SDA_IO   (GPIO_NUM_21)
 #define I2C_MASTER_FREQ_HZ  (100000U)
 #define LCD_SLAVE_ADDR      (0x27U)
 
@@ -38,11 +36,11 @@ esp_err_t i2c_init(void)
     {
         goto error;
     }
-
+    LOGI(TAG, "I2C device added at address 0x%02X", LCD_SLAVE_ADDR);
     return err;
 
 error:
-    ESP_LOGE(TAG, "Failed to config i2c: %s", esp_err_to_name(err));
+    LOGE(TAG, "Failed to config i2c: %s", esp_err_to_name(err));
     return err;
 }
 
@@ -53,5 +51,7 @@ i2c_master_dev_handle_t i2c_master_get_device(void)
 
 esp_err_t i2c_master_write(i2c_master_dev_handle_t handle, uint8_t *data, size_t len, TickType_t timeout)
 {
-    return i2c_master_transmit(handle, data, len, timeout);
+    esp_err_t err = i2c_master_transmit(handle, data, len, timeout);
+    LOGI(TAG, "TX %zu bytes to device (err=%s)", len, esp_err_to_name(err));
+    return err;
 }
