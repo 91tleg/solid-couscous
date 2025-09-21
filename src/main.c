@@ -10,7 +10,12 @@
 #ifndef UNIT_TEST
 void app_main(void)
 {
+    #if defined(BOARD_ESP32DEV)
+    log_level_set(LOG_LEVEL_ERROR);
+    #else
     log_level_set(LOG_LEVEL_NONE);
+    #endif
+
     LOGI(TAG, "Starting application");
 
     xTaskCreate(
