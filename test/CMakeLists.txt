@@ -17,7 +17,7 @@ set(UNITY_SOURCES ${CMAKE_SOURCE_DIR}/unity/src/unity.c)
 # Modules
 set(BUTTON_SOURCES ../src/modules/button/button.c)
 set(LCD_SOURCES ../src/modules/lcd/lcd.c)
-
+set(ECU_SOURCES ../src/modules/ecu/ssm1.c)
 
 add_executable(test_button
     ${BUTTON_SOURCES}
@@ -33,6 +33,13 @@ add_executable(test_lcd
     modules/test_lcd/test_main.c
 )
 
+add_executable(test_ecu
+    ${ECU_SOURCES}
+    ${UNITY_SOURCES}
+    modules/test_ecu/test_ssm1.c
+    modules/test_ecu/test_main.c
+)
 
 add_test(NAME test_button COMMAND test_button)
 add_test(NAME test_lcd COMMAND test_lcd)
+add_test(NAME test_ecu COMMAND test_ecu)
