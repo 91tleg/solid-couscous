@@ -13,14 +13,11 @@
 
 void test_button_state_machine(void)
 {
-    button_queue_init();
-    state_machine_queue_init();
+    xTaskCreate(button_task, "ButtonTask", 1024, NULL, 1, NULL);
+    xTaskCreate(state_machine_task, "StateTask", 1024, NULL, 1, NULL);
 
     QueueHandle_t button_q = button_get_event_queue();
     QueueHandle_t lcd_q = state_machine_get_lcd_queue();
-
-    xTaskCreate(button_task, "ButtonTask", 1024, NULL, 1, NULL);
-    xTaskCreate(state_machine_task, "StateTask", 1024, NULL, 1, NULL);
 
     state_event_e event = STATE_EVENT_BUTTON_PRESS;
     int res = xQueueSend(button_q, &event, 1000);
