@@ -1,0 +1,32 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake gcc g++ python3
+
+      - name: Configure CMake
+        working-directory: integrationtests
+        run: cmake -B build -S .
+
+      - name: Build tests
+        working-directory: integrationtests
+        run: cmake --build build -- -j$(nproc)
+
+      - name: Run tests with python test runner
+        working-directory: integrationtests
+        run: python3 test_runner.py

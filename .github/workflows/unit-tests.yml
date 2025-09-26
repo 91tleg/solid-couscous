@@ -1,4 +1,4 @@
-name: CMake Tests
+name: Unit Tests
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   test-native:
-    name: Run Native Tests via CMake
+    name: Run Native Unit Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -23,14 +23,11 @@ jobs:
 
       - name: Configure CMake
         working-directory: test
-        run: |
-          mkdir -p build
-          cd build
-          cmake ..
+        run: cmake -B build -S .
 
       - name: Build tests
-        working-directory: test/build
-        run: make -j$(nproc)
+        working-directory: test
+        run: cmake --build build -- -j$(nproc)
 
       - name: Run tests with CTest
         working-directory: test/build
