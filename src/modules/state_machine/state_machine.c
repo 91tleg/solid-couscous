@@ -95,7 +95,7 @@ static const struct state_transition state_transitions[] __attribute__((section(
         {STATE_STORED_CODE_THREE, STATE_EVENT_BUTTON_LONG_PRESS, STATE_ROMID},
         {STATE_STORED_CODE_THREE, STATE_EVENT_NONE, STATE_STORED_CODE_THREE}};
 
-void state_machine_init(struct state_machine_data *data)
+void state_machine_data_init(struct state_machine_data *data)
 {
     memset(data, 0, sizeof(*data));
     data->state = STATE_ROMID;
@@ -111,108 +111,108 @@ void state_enter(struct state_machine_data *data, state_e from, state_e to)
     switch (data->state)
     {
     case STATE_ROMID:
-        LOGI("SM", "ROMID");
+        LOGI(TAG, "Romid");
         get_romid(data->parameters.romid);
         break;
     case STATE_BATTERY_V:
         data->parameters.battery_voltage = get_param(STATE_BATTERY_V).f;
-        LOGI("SM", "BATV: %f", data->parameters.battery_voltage);
+        LOGI(TAG, "Batv: %f", data->parameters.battery_voltage);
         break;
     case STATE_VEHICLE_SPEED:
         data->parameters.vehicle_speed = get_param(STATE_VEHICLE_SPEED).u8;
-        LOGI("SM", "SPD: %u", data->parameters.vehicle_speed);
+        LOGI(TAG, "Spd: %u", data->parameters.vehicle_speed);
         break;
     case STATE_ENGINE_SPEED:
         data->parameters.engine_speed = get_param(STATE_ENGINE_SPEED).u16;
-        LOGI("SM", "RPM: %u", data->parameters.engine_speed);
+        LOGI(TAG, "Rpm: %u", data->parameters.engine_speed);
         break;
     case STATE_COOLANT_TEMP:
         data->parameters.coolant_temp = get_param(STATE_COOLANT_TEMP).i16;
-        LOGI("SM", "COOLANT: %d", data->parameters.coolant_temp);
+        LOGI(TAG, "Coolant: %d", data->parameters.coolant_temp);
         break;
     case STATE_AIRFLOW:
         data->parameters.airflow = get_param(STATE_AIRFLOW).f;
-        LOGI("SM", "MAF: %f", data->parameters.airflow);
+        LOGI(TAG, "Maf: %f", data->parameters.airflow);
         break;
     case STATE_THROTTLE:
         data->parameters.throttle_percentage = get_param(STATE_THROTTLE).u8;
-        LOGI("SM", "THROTTLE: %u", data->parameters.throttle_percentage);
+        LOGI(TAG, "Throttle: %u", data->parameters.throttle_percentage);
         break;
     case STATE_THROTTLE_V:
         data->parameters.throttle_signal = get_param(STATE_THROTTLE_V).f;
-        LOGI("SM", "THROTTLEV: %f", data->parameters.throttle_signal);
+        LOGI(TAG, "Thottlev: %f", data->parameters.throttle_signal);
         break;
     case STATE_MANIP:
         data->parameters.manip = get_param(STATE_MANIP).f;
-        LOGI("SM", "MANIP: %f", data->parameters.manip);
+        LOGI(TAG, "Manip: %f", data->parameters.manip);
         break;
     case STATE_BOOST_SOLINOID:
         data->parameters.boost_solenoid = get_param(STATE_BOOST_SOLINOID).f;
-        LOGI("SM", "WGC: %f", data->parameters.boost_solenoid);
+        LOGI(TAG, "Wgc: %f", data->parameters.boost_solenoid);
         break;
     case STATE_IGNITION_TIMING:
         data->parameters.ignition_timing = get_param(STATE_IGNITION_TIMING).u8;
-        LOGI("SM", "IGN: %u", data->parameters.ignition_timing);
+        LOGI(TAG, "Ign: %u", data->parameters.ignition_timing);
         break;
     case STATE_LOAD:
         data->parameters.engine_load = get_param(STATE_LOAD).u8;
-        LOGI("SM", "LOAD: %u", data->parameters.engine_load);
+        LOGI(TAG, "Load: %u", data->parameters.engine_load);
         break;
     case STATE_INJECTOR_PW:
         data->parameters.injector_pw = get_param(STATE_INJECTOR_PW).f;
-        LOGI("SM", "INJ: %f", data->parameters.injector_pw);
+        LOGI(TAG, "Inj: %f", data->parameters.injector_pw);
         break;
     case STATE_IAC:
         data->parameters.iac = get_param(STATE_IAC).f;
-        LOGI("SM", "IAC: %f", data->parameters.iac);
+        LOGI(TAG, "Iac: %f", data->parameters.iac);
         break;
     case STATE_O2_V:
         data->parameters.o2_signal = get_param(STATE_O2_V).f;
-        LOGI("SM", "O2V: %f", data->parameters.o2_signal);
+        LOGI(TAG, "O2v: %f", data->parameters.o2_signal);
         break;
     case STATE_TIMING_CORRECTION:
         data->parameters.timing_correction = get_param(STATE_TIMING_CORRECTION).u8;
-        LOGI("SM", "TIM: %u", data->parameters.timing_correction);
+        LOGI(TAG, "Timing: %u", data->parameters.timing_correction);
         break;
     case STATE_FUEL_TRIM:
         data->parameters.fuel_trim = get_param(STATE_FUEL_TRIM).f;
-        LOGI("SM", "TRIM: %f", data->parameters.fuel_trim);
+        LOGI(TAG, "Trim: %f", data->parameters.fuel_trim);
         break;
     case STATE_BAROP:
         data->parameters.barop = get_param(STATE_BAROP).f;
-        LOGI("SM", "BAROP: %f", data->parameters.barop);
+        LOGI(TAG, "Baro: %f", data->parameters.barop);
         break;
     case STATE_INPUT_SWITCHES:
         data->status0 = get_param(STATE_INPUT_SWITCHES).in_sw;
-        LOGI("SM", "IN");
+        LOGI(TAG, "Input");
         break;
     case STATE_INOUT_SWITCHES:
         data->status1 = get_param(STATE_INOUT_SWITCHES).io_sw;
-        LOGI("SM", "IO");
+        LOGI(TAG, "Io");
         break;
     case STATE_ACTIVE_CODE_ONE:
         data->status2 = get_param(STATE_ACTIVE_CODE_ONE).tc_one;
-        LOGI("SM", "A1");
+        LOGI(TAG, "A1");
         break;
     case STATE_ACTIVE_CODE_TWO:
         data->status3 = get_param(STATE_ACTIVE_CODE_TWO).tc_two;
-        LOGI("SM", "A2");
+        LOGI(TAG, "A2");
         break;
     case STATE_ACTIVE_CODE_THREE:
         data->status4 = get_param(STATE_ACTIVE_CODE_THREE).tc_three;
-        LOGI("SM", "A3");
+        LOGI(TAG, "A3");
         break;
     case STATE_STORED_CODE_ONE:
         data->status2 = get_param(STATE_STORED_CODE_ONE).tc_one;
-        LOGI("SM", "S1");
+        LOGI(TAG, "S1");
         break;
     case STATE_STORED_CODE_TWO:
         data->status3 = get_param(STATE_STORED_CODE_TWO).tc_two;
-        LOGI("SM", "S2");
+        LOGI(TAG, "S2");
         break;
     case STATE_STORED_CODE_THREE:
         data->status4 = get_param(STATE_STORED_CODE_THREE).tc_three;
-        LOGI("SM", "S3");
+        LOGI(TAG, "S3");
         break;
     }
 }
