@@ -1,5 +1,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include "drivers/drivers_init.h"
 #include "core/log/log.h"
 #include "modules/button/button_task.h"
 #include "modules/state_machine/state_machine_task.h"
@@ -10,39 +11,15 @@
 #ifndef UNIT_TEST
 void app_main(void)
 {
-    #if defined(BOARD_ESP32DEV)
-    log_level_set(LOG_LEVEL_ERROR);
-    #else
-    log_level_set(LOG_LEVEL_NONE);
-    #endif
-
+    log_init();
     LOGI(TAG, "Starting application");
 
-    xTaskCreate(
-        button_task,
-        "ButtonTask",
-        2048,
-        NULL,
-        3,
-        NULL
-    );
+    drivers_init();
 
-    xTaskCreate(
-        state_machine_task,
-        "State Machine Task",
-        4096,
-        NULL,
-        2,
-        NULL
-    );
+    button_task_init();
+    state_machine_task_init();
+    lcd_task_init();
 
-    xTaskCreate(
-        lcd_task,
-        "Lcd Task",
-        4096,
-        NULL,
-        1,
-        NULL
-    );
+    LOGI(TAG, "Startup complete. Free heap: %u bytes", xPortGetFreeHeapSize());
 }
 #endif  // UNIT_TEST
