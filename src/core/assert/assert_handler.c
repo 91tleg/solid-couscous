@@ -13,7 +13,6 @@ static void assert_trace(uint32_t program_counter)
 
 static void assert_blink_led(void)
 {
-    led_init();
     for(;;)
     {
         led_on();
