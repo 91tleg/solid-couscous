@@ -5,6 +5,11 @@
 #include <freertos/queue.h>
 
 /**
+ * @brief Initializes queue and task.
+ */
+void state_machine_task_init(void);
+
+/**
  * @brief Retrieves the lcd queue handle used for communication between tasks.
  *
  * @return QueueHandle_t Handle to the lcd queue.

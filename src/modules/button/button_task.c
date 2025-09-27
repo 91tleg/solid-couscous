@@ -9,14 +9,22 @@
 
 static QueueHandle_t event_queue = NULL;
 
-static void button_queue_init(void)
+void button_task_init(void)
 {
-   if (event_queue == NULL)
-    {
-        event_queue = xQueueCreate(10, sizeof(state_event_e));
-        LOGI(TAG, "Event queue initialized");
-        ASSERT(event_queue != NULL);
-    }
+    event_queue = xQueueCreate(10, sizeof(state_event_e));
+    ASSERT(event_queue != NULL);
+    LOGI(TAG, "Event queue initialized");
+
+    BaseType_t res = xTaskCreate(
+        button_task,
+        "ButtonTask",
+        2048,
+        NULL,
+        3,
+        NULL
+    );
+    ASSERT(res == pdPASS);
+    LOGI(TAG, "Button task started");
 }
 
 QueueHandle_t button_get_event_queue(void) 
@@ -26,8 +34,6 @@ QueueHandle_t button_get_event_queue(void)
 
 void button_task(void *parameters)
 {
-    button_driver_init();
-    button_queue_init();
     state_event_e event;
 
     for (;;)
