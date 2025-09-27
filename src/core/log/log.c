@@ -38,3 +38,12 @@ void log_message(log_level_e level, const char *tag, const char *fmt, ...)
             break;
     }
 }
+
+void log_init(void)
+{
+    #if defined(BOARD_ESP32DEV)
+    log_level_set(LOG_LEVEL_ERROR);
+    #else
+    log_level_set(LOG_LEVEL_NONE);
+    #endif
+}
