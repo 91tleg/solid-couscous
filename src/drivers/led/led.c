@@ -5,7 +5,7 @@
 #define LED_ON      (1)
 #define LED_OFF     (0)
 
-void led_init(void)
+void led_driver_init(void)
 {
     gpio_config_t io_conf = {
         .pin_bit_mask = 1ULL << LED_PIN,

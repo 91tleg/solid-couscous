@@ -121,9 +121,8 @@ error:
     return err;
 }
 
-void lcd_init(void)
+void lcd_driver_init(void)
 {
-    i2c_init();
     vTaskDelay(pdMS_TO_TICKS(LCD_POWER_ON_DELAY_MS));
 
     lcd_write_nibble(LCD_INIT_8_BIT_MODE, false);

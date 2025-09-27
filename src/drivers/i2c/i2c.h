@@ -6,7 +6,7 @@
 #include <esp_err.h>
 #include <freertos/FreeRTOS.h>
 
-esp_err_t i2c_init(void);
+esp_err_t i2c_driver_init(void);
 i2c_master_dev_handle_t i2c_master_get_device(void);
 esp_err_t i2c_master_write(i2c_master_dev_handle_t handle, uint8_t *data, size_t len, TickType_t timeout);
 

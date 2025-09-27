@@ -9,7 +9,7 @@
 static i2c_master_dev_handle_t dev_handle = NULL;
 static i2c_master_bus_handle_t bus_handle = NULL;
 
-esp_err_t i2c_init(void)
+esp_err_t i2c_driver_init(void)
 {
     esp_err_t err = ESP_OK;
     i2c_master_bus_config_t i2c_mst_config = {
