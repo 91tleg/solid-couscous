@@ -8,7 +8,7 @@
  *
  * @param data Pointer to the state machine data struct to initialize.
  */
-void state_machine_init(struct state_machine_data *data);
+void state_machine_data_init(struct state_machine_data *data);
 
 /**
  * @brief Handles entering a new state in the state machine.

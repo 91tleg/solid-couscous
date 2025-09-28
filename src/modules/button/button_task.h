@@ -5,6 +5,10 @@
 #include <freertos/queue.h>
 
 /**
+ * @brief Initializes the queue and task.
+ */
+void button_task_init(void);
+/**
  * @brief Get the FreeRTOS queue used to send button events.
  * 
  * @return QueueHandle_t Handle to the button event queue.

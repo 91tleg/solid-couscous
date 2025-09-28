@@ -25,6 +25,13 @@ void log_level_set(log_level_e level);
  */
 void log_message(log_level_e level, const char *tag, const char *fmt, ...);
 
+/**
+ * @brief Initialize logging.
+ * 
+ * This function sets the log level based on the board. Enable log when the host UART is free.
+ */
+void log_init(void);
+
 #define LOGI(tag, fmt, ...) log_message(LOG_LEVEL_INFO, tag, fmt, ##__VA_ARGS__)
 #define LOGW(tag, fmt, ...) log_message(LOG_LEVEL_WARN, tag, fmt, ##__VA_ARGS__)
 #define LOGE(tag, fmt, ...) log_message(LOG_LEVEL_ERROR, tag, fmt, ##__VA_ARGS__)
