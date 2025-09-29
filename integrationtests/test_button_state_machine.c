@@ -1,6 +1,6 @@
-#include <freertos/FreeRTOS.h>
-#include <freertos/queue.h>
-#include <freertos/task.h>
+#include "mocks/freertos/task.h"
+#include "mocks/freertos/queue.h"
+#include "mocks/freertos/FreeRTOS.h"
 #include "mocks/button/button_task.h"
 #include "mocks/state_machine/state_machine_task.h"
 
@@ -13,11 +13,14 @@
 
 void test_button_state_machine(void)
 {
-    xTaskCreate(button_task, "ButtonTask", 1024, NULL, 1, NULL);
-    xTaskCreate(state_machine_task, "StateTask", 1024, NULL, 1, NULL);
+    button_task_init();
+    state_machine_task_init();
 
     QueueHandle_t button_q = button_get_event_queue();
+    assert(button_q != NULL);
+
     QueueHandle_t lcd_q = state_machine_get_lcd_queue();
+    assert(lcd_q != NULL);
 
     state_event_e event = STATE_EVENT_BUTTON_PRESS;
     int res = xQueueSend(button_q, &event, 1000);
