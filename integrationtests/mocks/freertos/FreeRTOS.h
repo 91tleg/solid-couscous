@@ -12,6 +12,7 @@ extern "C"
 typedef void* QueueHandle_t;
 typedef unsigned int TickType_t;
 typedef void (*TaskFunction_t)(void*);
+typedef int BaseType_t;
 
 #define pdPASS              (1)
 #define pdFAIL              (0)

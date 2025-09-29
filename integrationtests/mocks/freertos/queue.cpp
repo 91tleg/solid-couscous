@@ -14,7 +14,7 @@ struct Queue
     size_t length;
 };
 
-extern "C" QueueHandle_t xQueueCreate(size_t length, size_t itemSize)
+QueueHandle_t xQueueCreate(size_t length, size_t itemSize)
 {
     auto *q = new Queue();
     q->length = length;
@@ -22,7 +22,7 @@ extern "C" QueueHandle_t xQueueCreate(size_t length, size_t itemSize)
     return q;
 }
 
-extern "C" int xQueueSend(QueueHandle_t handle, const void *item, TickType_t timeout)
+int xQueueSend(QueueHandle_t handle, const void *item, TickType_t timeout)
 {
     auto *q = (Queue *)handle;
     std::unique_lock<std::mutex> lock(q->mtx);
@@ -37,7 +37,7 @@ extern "C" int xQueueSend(QueueHandle_t handle, const void *item, TickType_t tim
     return pdPASS;
 }
 
-extern "C" int xQueueReceive(QueueHandle_t handle, void *out, TickType_t timeout)
+int xQueueReceive(QueueHandle_t handle, void *out, TickType_t timeout)
 {
     auto *q = (Queue *)handle;
     std::unique_lock<std::mutex> lock(q->mtx);
