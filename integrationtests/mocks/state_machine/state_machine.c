@@ -1,4 +1,4 @@
-#include "state_machine_task.h"
+#include "state_machine.h"
 #include <string.h>
 
 void state_machine_data_init(struct state_machine_data *data)
