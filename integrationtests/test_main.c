@@ -1,11 +1,15 @@
 #include <stdio.h>
+#include <unity.h>
 
 void test_button_state_machine(void);
 
+void setUp(void) {}
+
+void tearDown(void) {}
+
 int main(void)
 {
-    printf("[TEST] Running integration test\n");
-    test_button_state_machine();
-    printf("[TEST] All tests passed\n");
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_button_state_machine);
+    return UNITY_END();
 }
