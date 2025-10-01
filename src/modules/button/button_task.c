@@ -1,6 +1,5 @@
 #include "button_task.h"
 #include "button.h"
-#include "drivers/button/button.h"
 #include "core/assert/assert_handler.h"
 #include "core/log/log.h"
 #include <freertos/task.h>
