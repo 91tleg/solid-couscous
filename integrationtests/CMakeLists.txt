@@ -4,10 +4,10 @@ project(integration_tests C CXX)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-set(MOCK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mocks)
-set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
-set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src/modules)
-set(UNITY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../test/unity/src)
+set(MOCK_DIR       ${CMAKE_SOURCE_DIR}/mocks)
+set(INCLUDE_DIR    ${CMAKE_SOURCE_DIR}/../include)
+set(SRC_DIR        ${CMAKE_SOURCE_DIR}/../src/modules)
+set(UNITY_DIR      ${CMAKE_SOURCE_DIR}/../test/unity/src)
 
 # Unity
 add_library(unity STATIC
@@ -62,12 +62,12 @@ add_library(state_machine_task STATIC
 target_include_directories(state_machine_task PUBLIC
     ${MOCK_DIR}
     ${INCLUDE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src
+    ${CMAKE_SOURCE_DIR}/../src
     ${SRC_DIR}/state_machine
 )
 
-file(GLOB TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/test_*.c)
-list(APPEND TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/test_main.c)
+file(GLOB TEST_SOURCES ${CMAKE_SOURCE_DIR}/../integrationtests/test_*.c)
+list(APPEND TEST_SOURCES ${CMAKE_SOURCE_DIR}/../integrationtests/test_main.c)
 
 add_executable(integration_tests_runner
     ${TEST_SOURCES}
