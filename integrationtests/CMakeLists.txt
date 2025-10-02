@@ -50,21 +50,25 @@ add_library(button_task STATIC
     ${SRC_DIR}/button/button_task.c
 )
 target_include_directories(button_task PUBLIC
+    ${MOCK_DIR}/button
     ${MOCK_DIR}
     ${INCLUDE_DIR}
     ${SRC_DIR}/button
 )
+target_link_libraries(button_task PUBLIC mock_modules)
 
 # State machine task
 add_library(state_machine_task STATIC
     ${SRC_DIR}/state_machine/state_machine_task.c
 )
 target_include_directories(state_machine_task PUBLIC
+    ${MOCK_DIR}/state_machine
     ${MOCK_DIR}
     ${INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/../src
     ${SRC_DIR}/state_machine
 )
+target_link_libraries(state_machine_task PUBLIC mock_modules)
 
 file(GLOB TEST_SOURCES ${CMAKE_SOURCE_DIR}/../integrationtests/test_*.c)
 list(APPEND TEST_SOURCES ${CMAKE_SOURCE_DIR}/../integrationtests/test_main.c)
@@ -83,7 +87,6 @@ target_include_directories(integration_tests_runner PRIVATE
 
 target_link_libraries(integration_tests_runner
     mock_freertos
-    mock_modules
     mock_core
     button_task
     state_machine_task
