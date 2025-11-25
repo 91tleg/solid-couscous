@@ -1,29 +1,25 @@
 #include "assert_handler.h"
-#include "drivers/led/led.h"
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <esp_log.h>
+#include "led.h"
+#include "log.h"
+#include <inttypes.h>
 
-#define TAG  "ASSERT"
-
-static void assert_trace(uint32_t program_counter)
-{
-    ESP_LOGE(TAG, "ASSERT FAILED AT PC 0x%08" PRIx32, program_counter);
-}
+#define TAG  "Assert"
 
 static void assert_blink_led(void)
 {
-    for(;;)
+    for (;;)
     {
         led_on();
-        vTaskDelay(pdMS_TO_TICKS(300));
+        for (volatile int i = 0; i < 1000000; ++i);
         led_off();
-        vTaskDelay(pdMS_TO_TICKS(300));
+        for (volatile int i = 0; i < 1000000; ++i);
     }
 }
 
-void assert_handler(uint32_t program_counter)
+void assert_handler(uint32_t pc, const char *file, int line)
 {
-    assert_trace(program_counter);
+    
+    LOGE(TAG, "Assert failed at %s:%d, PC=0x%08" PRIX32,
+         file, line, pc);
     assert_blink_led();
 }
