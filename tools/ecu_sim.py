@@ -71,12 +71,7 @@ def simulate_ecu():
         update_sensor_values()
 
         while ecu_sim.in_waiting >= 4:
-            peek = ecu_sim.read(1)
-            while peek[0] not in (0x78, 0x12):
-                log(f"Discarding stray byte: {peek[0]:02X}")
-                peek = ecu_sim.read(1)
-            rest = ecu_sim.read(3)
-            request = peek + rest
+            request = ecu_sim.read(4)
             header, msb, lsb, footer = struct.unpack("BBBB", request)
 
             # Stop command
@@ -98,7 +93,10 @@ def simulate_ecu():
             # Read command
             elif header == 0x78 and footer == 0x00:
                 addr = (msb << 8) | lsb
-                log(f"Read request for {hex(addr)} ({ECU_ADDRESSES.get(addr, 'UNKNOWN')})")
+                if addr not in ECU_ADDRESSES:
+                    log(f"Ignoring unknown address: {hex(addr)}")
+                    continue
+                log(f"Read request for {hex(addr)} ({ECU_ADDRESSES[addr]})")
                 streaming = True
                 romid_mode = False
                 stream_addr = addr
@@ -122,7 +120,10 @@ def simulate_ecu():
                 ecu_sim.flush()
                 log(f"Sent data {value} for {hex(stream_addr)} ({ECU_ADDRESSES.get(stream_addr)}): {' '.join(f'{b:02X}' for b in packet)}")
 
-        time.sleep(0.05)
+        BYTES_PER_PACKET = 4
+        SECONDS_PER_BYTE = 1.0 / BAUD_RATE * 11
+
+        time.sleep(BYTES_PER_PACKET * SECONDS_PER_BYTE)
 
 
 if __name__ == "__main__":
