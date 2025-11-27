@@ -1,62 +1,62 @@
-#include "lcd.h"
-#include "drivers/i2c/i2c.h"
-#include "core/log/log.h"
+#include "hd44780.h"
+#include "i2c.h"
+#include "log.h"
 #include <stdbool.h>
 #include <esp_err.h>
 #include <driver/i2c_master.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#define TAG                     "Lcd"
-#define LCD_CLEAR_DISPLAY       (0x01U)
-#define LCD_RETURN_HOME         (0x02U)
-#define LCD_ENTRY_MODE_SET      (0x06U)
-#define LCD_DISPLAY_ON          (0x0CU)
-#define LCD_DISPLAY_OFF         (0x08U)
-#define LCD_FUNCTION_SET        (0x28U)
-#define LCD_SET_CURSOR          (0x80U)
-#define LCD_INIT_8_BIT_MODE     (0x30U)
-#define LCD_INIT_4_BIT_MODE     (0x20U)
-#define LCD_ROW0_ADDR           (0x00U)
-#define LCD_ROW1_ADDR           (0x40U)
+#define TAG                 "Hd44780"
+#define CLEAR_DISPLAY       (0x01U)
+#define RETURN_HOME         (0x02U)
+#define ENTRY_MODE_SET      (0x06U)
+#define DISPLAY_ON          (0x0CU)
+#define DISPLAY_OFF         (0x08U)
+#define FUNCTION_SET        (0x28U)
+#define SET_CURSOR          (0x80U)
+#define INIT_8_BIT_MODE     (0x30U)
+#define INIT_4_BIT_MODE     (0x20U)
+#define ROW0_ADDR           (0x00U)
+#define ROW1_ADDR           (0x40U)
 
-#define LCD_EN                  (0x04U)
-#define LCD_RS                  (0x01U)
-#define LCD_BACKLIGHT           (0x08U)
-#define LCD_CMD_EN_UP(x)        ((x) | LCD_EN)
-#define LCD_CMD_EN_DOWN(x)      ((x) & ~LCD_EN)
-#define LCD_DATA(x)             ((x) | LCD_RS)
+#define EN                  (0x04U)
+#define RS                  (0x01U)
+#define BACKLIGHT           (0x08U)
+#define CMD_EN_UP(x)        ((x) | EN)
+#define CMD_EN_DOWN(x)      ((x) & ~EN)
+#define DATA(x)             ((x) | RS)
 
-#define LCD_CMD_INIT_DELAY_MS   (5U)
-#define LCD_CMD_DELAY_MS        (5U)
-#define LCD_POWER_ON_DELAY_MS   (2000U)
-#define LCD_CHAR_DELAY_MS       (1U)
-#define LCD_I2C_TIMEOUT_MS      (1000U)
+#define INIT_DELAY_MS       (5U)
+#define CMD_DELAY_MS        (5U)
+#define POWER_ON_DELAY_MS   (2000U)
+#define CHAR_DELAY_MS       (1U)
+#define I2C_TIMEOUT_MS      (1000U)
 
 #define SPLIT_NIBBLES(byte, high, low)                  \
     do {                                                \
         high = ((uint8_t)(byte)) & 0xF0U;               \
-        low  = (((uint8_t)(byte) << 4) & 0xF0U);        \
+        low  = (((uint8_t)(byte) << 4U) & 0xF0U);       \
     } while(0)
 
-static esp_err_t lcd_write_nibble(uint8_t nibble, bool is_data)
+static esp_err_t hd44780_write_nibble(uint8_t nibble, bool is_data)
 {
-    i2c_master_dev_handle_t lcd_handle = i2c_master_get_device();
+    i2c_master_dev_handle_t i2c_handle = i2c_master_get_handle();
     esp_err_t err = ESP_OK;
     uint8_t buf[1];
-    uint8_t flags = LCD_BACKLIGHT | (is_data ? LCD_RS : 0);
+    uint8_t flags = BACKLIGHT | (is_data ? RS : 0);
 
     // EN = 1
-    buf[0] = LCD_CMD_EN_UP(nibble | flags);
-    err = i2c_master_transmit(lcd_handle, buf, 1, pdMS_TO_TICKS(LCD_I2C_TIMEOUT_MS));
+    buf[0] = CMD_EN_UP(nibble | flags);
+    err = i2c_master_transmit(i2c_handle, buf, 1, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
     if (err != ESP_OK)
     {
         goto error;
     }
 
     // EN = 0
-    buf[0] = LCD_CMD_EN_DOWN(nibble | flags);
-    err = i2c_master_transmit(lcd_handle, buf, 1, pdMS_TO_TICKS(LCD_I2C_TIMEOUT_MS));
+    buf[0] = CMD_EN_DOWN(nibble | flags);
+    err = i2c_master_transmit(i2c_handle, buf, 1, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
     if (err != ESP_OK)
     {
         goto error;
@@ -69,25 +69,25 @@ error:
     return err;
 }
 
-static esp_err_t lcd_send_command(uint8_t cmd)
+static esp_err_t hd44780_send_command(uint8_t cmd)
 {
     esp_err_t err = ESP_OK;
     uint8_t high;
     uint8_t low;
     SPLIT_NIBBLES(cmd, high, low);
 
-    err = lcd_write_nibble(high, false);
+    err = hd44780_write_nibble(high, false);
     if (err != ESP_OK)
     {
        goto error;
     }
-    err = lcd_write_nibble(low, false);
+    err = hd44780_write_nibble(low, false);
     if (err != ESP_OK)
     {
         goto error;
     }
 
-    vTaskDelay(pdMS_TO_TICKS(LCD_CMD_DELAY_MS));
+    vTaskDelay(pdMS_TO_TICKS(CMD_DELAY_MS));
     return err;
 
 error:
@@ -95,25 +95,25 @@ error:
     return err;
 }
 
-static esp_err_t lcd_send_data(char data)
+static esp_err_t hd44780_send_data(char data)
 {
     esp_err_t err = ESP_OK;
     uint8_t high;
     uint8_t low;
     SPLIT_NIBBLES(data, high, low);
 
-    err = lcd_write_nibble(high, true);
+    err = hd44780_write_nibble(high, true);
     if (err != ESP_OK)
     {
         goto error;
     }
-    err = lcd_write_nibble(low, true);
+    err = hd44780_write_nibble(low, true);
     if (err != ESP_OK)
     {
        goto error;
     }
 
-    vTaskDelay(pdMS_TO_TICKS(LCD_CMD_DELAY_MS));
+    vTaskDelay(pdMS_TO_TICKS(CMD_DELAY_MS));
     return err;
 
 error:
@@ -121,47 +121,47 @@ error:
     return err;
 }
 
-void lcd_driver_init(void)
+void hd44780_driver_init(void)
 {
-    vTaskDelay(pdMS_TO_TICKS(LCD_POWER_ON_DELAY_MS));
+    vTaskDelay(pdMS_TO_TICKS(POWER_ON_DELAY_MS));
 
-    lcd_write_nibble(LCD_INIT_8_BIT_MODE, false);
-    vTaskDelay(pdMS_TO_TICKS(LCD_CMD_INIT_DELAY_MS));
+    hd44780_write_nibble(INIT_8_BIT_MODE, false);
+    vTaskDelay(pdMS_TO_TICKS(INIT_DELAY_MS));
 
-    lcd_write_nibble(LCD_INIT_8_BIT_MODE, false);
-    vTaskDelay(pdMS_TO_TICKS(LCD_CMD_INIT_DELAY_MS));
+    hd44780_write_nibble(INIT_8_BIT_MODE, false);
+    vTaskDelay(pdMS_TO_TICKS(INIT_DELAY_MS));
 
-    lcd_write_nibble(LCD_INIT_8_BIT_MODE, false);
-    vTaskDelay(pdMS_TO_TICKS(LCD_CMD_INIT_DELAY_MS));
+    hd44780_write_nibble(INIT_8_BIT_MODE, false);
+    vTaskDelay(pdMS_TO_TICKS(INIT_DELAY_MS));
 
-    // 4-bit mode
-    lcd_write_nibble(LCD_INIT_4_BIT_MODE, false);
-    vTaskDelay(pdMS_TO_TICKS(LCD_CMD_INIT_DELAY_MS));
+    hd44780_write_nibble(INIT_4_BIT_MODE, false);
+    vTaskDelay(pdMS_TO_TICKS(INIT_DELAY_MS));
 
-    lcd_send_command(LCD_FUNCTION_SET);
-    lcd_send_command(LCD_DISPLAY_OFF);
-    lcd_clear();
-    lcd_send_command(LCD_ENTRY_MODE_SET);
-    lcd_send_command(LCD_DISPLAY_ON);
+    hd44780_send_command(FUNCTION_SET);
+    hd44780_send_command(DISPLAY_OFF);
+    hd44780_clear();
+    hd44780_send_command(ENTRY_MODE_SET);
+    hd44780_send_command(DISPLAY_ON);
 }
 
-void lcd_clear(void)
+void hd44780_clear(void)
 {
-    lcd_send_command(LCD_CLEAR_DISPLAY);
-    vTaskDelay(pdMS_TO_TICKS(LCD_CMD_INIT_DELAY_MS));
+    hd44780_send_command(CLEAR_DISPLAY);
+    vTaskDelay(pdMS_TO_TICKS(CMD_DELAY_MS));
 }
 
-void lcd_set_cursor(uint8_t col, uint8_t row)
+void hd44780_set_cursor(uint8_t col, uint8_t row)
 {
-    uint8_t cmd = LCD_SET_CURSOR | (row == 1 ? LCD_ROW1_ADDR : LCD_ROW0_ADDR) | col;
-    lcd_send_command(cmd);
+    uint8_t cmd =
+        SET_CURSOR | (row == 1 ? ROW1_ADDR : ROW0_ADDR) | col;
+    hd44780_send_command(cmd);
 }
 
-void lcd_print(char *str)
+void hd44780_print(char *str)
 {
     while (*str)
     {
-        lcd_send_data((uint8_t)*str++);
-        vTaskDelay(pdMS_TO_TICKS(LCD_CHAR_DELAY_MS));
+        hd44780_send_data((uint8_t)*str++);
+        vTaskDelay(pdMS_TO_TICKS(CHAR_DELAY_MS));
     }
 }

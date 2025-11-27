@@ -1,11 +1,11 @@
-#ifndef DRIVERS_LCD_H
-#define DRIVERS_LCD_H
+#ifndef HD44780_H
+#define HD44780_H
 
 #include <stdint.h>
 
-void lcd_driver_init(void);
-void lcd_clear(void);
-void lcd_set_cursor(uint8_t col, uint8_t row);
-void lcd_print(char *str);
+void hd44780_driver_init(void);
+void hd44780_clear(void);
+void hd44780_set_cursor(uint8_t col, uint8_t row);
+void hd44780_print(char *str);
 
-#endif // DRIVERS_LCD_H
+#endif // HD44780_H
