@@ -1,5 +1,4 @@
 #include "hd44780.h"
-#include "i2c.h"
 #include "log.h"
 #include <stdbool.h>
 #include <esp_err.h>
@@ -39,9 +38,10 @@
         low  = (((uint8_t)(byte) << 4U) & 0xF0U);       \
     } while(0)
 
+static i2c_master_dev_handle_t i2c_handle = NULL;
+
 static esp_err_t hd44780_write_nibble(uint8_t nibble, bool is_data)
 {
-    i2c_master_dev_handle_t i2c_handle = i2c_master_get_handle();
     esp_err_t err = ESP_OK;
     uint8_t buf[1];
     uint8_t flags = BACKLIGHT | (is_data ? RS : 0);
@@ -121,8 +121,9 @@ error:
     return err;
 }
 
-void hd44780_driver_init(void)
+void hd44780_driver_init(i2c_master_dev_handle_t dev)
 {
+    i2c_handle = dev;
     vTaskDelay(pdMS_TO_TICKS(POWER_ON_DELAY_MS));
 
     hd44780_write_nibble(INIT_8_BIT_MODE, false);
