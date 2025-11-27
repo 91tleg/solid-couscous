@@ -1,19 +1,26 @@
-#ifndef DRIVERS_BUTTON_H
-#define DRIVERS_BUTTON_H
+#ifndef BUTTON_H
+#define BUTTON_H
+
+#include <stdint.h>
+
+typedef struct QueueDefinition * QueueHandle_t;
+
+struct button_isr
+{
+    int level;
+    int64_t timestamp_us; // When the press occurred
+};
 
 /**
  * @brief Initialize the button gpio.
- * 
- * This function should be called once before reading the button state.
+ * @param isr_queue Queue for the gpio ISR.
  */
-void button_driver_init(void);
+void button_driver_init(QueueHandle_t isr_queue);
 
 /**
  * @brief Read the button gpio state.
  * @return 0 if button is pressed, else 1.
- * 
- * This function returns the current raw state of the button gpio.
  */
 int button_driver_read(void);
 
-#endif // DRIVERS_BUTTON_H
+#endif // BUTTON_H
