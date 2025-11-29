@@ -1,40 +1,47 @@
-#include "lcd_task.h"
-#include "drivers/lcd/lcd.h"
-#include "lcd.h"
-#include "core/log/log.h"
-#include "core/assert/assert_handler.h"
-#include "state_defs.h"
-#include "modules/state_machine/state_machine_task.h"
+#include "display_task.h"
+#include "display.h"
+#include "log.h"
+#include "assert_handler.h"
+#include "fsm_data.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
 
-#define TAG "LcdTask"
+#define TAG             "DisplayTask"
+#define TASK_STACK_SIZE (4096U)
 
-void lcd_task_init(void)
-{
-    BaseType_t res = xTaskCreate(
-        lcd_task,
-        "Lcd Task",
-        4096,
-        NULL,
-        1,
-        NULL
-    );
-    ASSERT(res == pdPASS);
-    LOGI(TAG, "Lcd task started.");
-}
+static StaticTask_t display_task_tcb;
+static StackType_t display_task_stack[TASK_STACK_SIZE];
+static TaskHandle_t display_task_handle = NULL;
 
-void lcd_task(void *parameters)
+static Queuehandle_t display_queue = NULL;
+
+static void display_task(void *parameters)
 {
-    struct state_machine_data lcd_data;
-    QueueHandle_t lcd_queue = state_machine_get_lcd_queue();
+    struct fsm_data sm_data;
+
     for (;;)
     {
-        if (xQueueReceive(lcd_queue, &lcd_data, portMAX_DELAY) == pdTRUE)
+        if (xQueueReceive(display_queue, &sm_data, portMAX_DELAY) == pdTRUE)
         {
-            lcd_print_state(&lcd_data);
+            display_print_state(&sm_data);
         }
         vTaskDelay(pdMS_TO_TICKS(90));
     }
+}
+
+void display_task_init(QueueHandle_t display_q)
+{
+    display_queue = display_q;
+
+    xTaskCreateStatic(
+        display_task,
+        TAG,
+        TASK_STACK_SIZE,
+        NULL,
+        1,
+        display_task_stack,
+        &display_task_tcb
+    );
+    LOGI(TAG, "Task started");
 }

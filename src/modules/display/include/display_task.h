@@ -1,18 +1,8 @@
-#ifndef LCD_TASK_H
-#define LCD_TASK_H
+#ifndef DISPLAY_TASK_H
+#define DISPLAY_TASK_H
 
-/**
- * @brief Initializes the lcd task.
- */
-void lcd_task_init(void);
+typedef struct QueueDefinition *QueueHandle_t;
 
-/**
- * @brief Lcd display task for handling screen updates.
- * 
- * Manages the lcd display, updating its contents based on system state.
- * 
- * @param parameters Pointer to task-specific parameters (unused).
- */
-void lcd_task(void *parameters);
+void display_task_init(QueueHandle_t display_q);
 
-#endif // LCD_TASK_H
+#endif // DISPLAY_TASK_H

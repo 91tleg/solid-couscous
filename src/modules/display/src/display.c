@@ -1,219 +1,251 @@
-#include "lcd.h"
-#include "drivers/lcd/lcd.h"
-#include "core/log/log.h"
+#include "display.h"
+#include "hd44780.h"
+#include "log.h"
+#include "fsm_data.h"
 #include <stdio.h>
+#include <string.h>
 
-#define TAG          "LCD"
-#define LCD_BUF_SIZE (20)
+#define TAG "Display"
 
-void lcd_print_state(struct state_machine_data *data)
+void display_print_state(struct fsm_data *data)
 {
-    static char lcd_buf[LCD_BUF_SIZE];
+    static char buf[20];
     switch (data->state)
     {
     case STATE_ROMID:
         LOGI(TAG, "romid");
-        if (data->parameters.romid[0] == 0x00 &&
-            data->parameters.romid[1] == 0x00 &&
-            data->parameters.romid[2] == 0x00)
+        if ((data->romid[0] | data->romid[1] | data->romid[2]) == 0x00)
         {
-            snprintf(lcd_buf, sizeof(lcd_buf), "ROM ID: --.--.--");
+            strcpy(buf, "ROM ID: --.--.--   ");
+        } else {
+            snprintf(buf, sizeof(buf), "ROM ID: %02X.%02X.%02X",
+                     data->romid[0], data->romid[1], data->romid[2]);
         }
-        else
-        {
-            snprintf(lcd_buf, sizeof(lcd_buf), "ROM ID: %02X.%02X.%02X",
-                     data->parameters.romid[0],
-                     data->parameters.romid[1],
-                     data->parameters.romid[2]);
-        }
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
-        lcd_set_cursor(0, 1);
-        lcd_print("                ");
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
+        hd44780_set_cursor(0, 1);
+        hd44780_print("                ");
         break;
 
     case STATE_BATTERY_V:
         LOGI(TAG, "battery");
-        snprintf(lcd_buf, sizeof(lcd_buf), "VBAT: %.2fv     ", data->parameters.battery_voltage);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "VBAT: %.2fv     ", data->decoded_data.f32);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_VEHICLE_SPEED:
         LOGI(TAG, "speed");
-        snprintf(lcd_buf, sizeof(lcd_buf), "VSPD: %dmph   ", data->parameters.vehicle_speed);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "VSPD: %dmph   ", data->decoded_data.u8);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_ENGINE_SPEED:
         LOGI(TAG, "rpm");
-        snprintf(lcd_buf, sizeof(lcd_buf), "REV: %drpm     ", data->parameters.engine_speed);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "REV: %drpm     ", data->decoded_data.u16);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_COOLANT_TEMP:
         LOGI(TAG, "coolant");
-        snprintf(lcd_buf, sizeof(lcd_buf), "WATR: %df      ", data->parameters.coolant_temp);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "WATR: %df      ", data->decoded_data.i8);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_AIRFLOW:
         LOGI(TAG, "maf");
-        snprintf(lcd_buf, sizeof(lcd_buf), "MAF: %.2fv       ", data->parameters.airflow);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "MAF: %.2fv       ", data->decoded_data.f32);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_THROTTLE:
         LOGI(TAG, "throttle");
-        snprintf(lcd_buf, sizeof(lcd_buf), "TPS: %d%%       ", data->parameters.throttle_percentage);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "TPS: %d%%       ", data->decoded_data.u8);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_THROTTLE_V:
         LOGI(TAG, "throttle v");
-        snprintf(lcd_buf, sizeof(lcd_buf), "THV: %.2fv      ", data->parameters.throttle_signal);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "THV: %.2fv      ", data->decoded_data.f32);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_MANIP:
         LOGI(TAG, "manip");
-        snprintf(lcd_buf, sizeof(lcd_buf),
-                 data->parameters.manip < 0 ? "MANIP: %.2finHg " : "MANIP: %.2fpsi  ",
-                 data->parameters.manip < 0 ? -data->parameters.manip : data->parameters.manip);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf),
+                 data->decoded_data.f32 < 0 ? "MANIP: %.2finHg " : "MANIP: %.2fpsi  ",
+                 data->decoded_data.f32 < 0 ? -data->decoded_data.f32 : data->decoded_data.f32);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_BOOST_SOLINOID:
         LOGI(TAG, "wgc");
-        snprintf(lcd_buf, sizeof(lcd_buf), "WGC: %.2f%%      ", data->parameters.boost_solenoid);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "WGC: %.2f%%      ", data->decoded_data.f32);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_IGNITION_TIMING:
         LOGI(TAG, "ign");
-        snprintf(lcd_buf, sizeof(lcd_buf), "IGN: %dBTDC    ", data->parameters.ignition_timing);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "IGN: %dBTDC    ", data->decoded_data.u8);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_LOAD:
         LOGI(TAG, "load");
-        snprintf(lcd_buf, sizeof(lcd_buf), "LOAD: %d       ", data->parameters.engine_load);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "LOAD: %d       ", data->decoded_data.u8);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_INJECTOR_PW:
         LOGI(TAG, "inj");
-        snprintf(lcd_buf, sizeof(lcd_buf), "IPW: %.3fms   ", data->parameters.injector_pw);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "IPW: %.3fms   ", data->decoded_data.f32);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_IAC:
         LOGI(TAG, "iac");
-        snprintf(lcd_buf, sizeof(lcd_buf), "IAC: %.1f        ", data->parameters.iac);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "IAC: %.1f        ", data->decoded_data.f32);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_O2_V:
         LOGI(TAG, "o2");
-        snprintf(lcd_buf, sizeof(lcd_buf), "O2: %.2fv     ", data->parameters.o2_signal);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "O2: %.2fv     ", data->decoded_data.f32);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_TIMING_CORRECTION:
         LOGI(TAG, "timing");
-        snprintf(lcd_buf, sizeof(lcd_buf), "CORR: %d       ", data->parameters.timing_correction);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "CORR: %d       ", data->decoded_data.u8);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_FUEL_TRIM:
         LOGI(TAG, "trim");
-        snprintf(lcd_buf, sizeof(lcd_buf), "TRIM: %.2f      ", data->parameters.fuel_trim);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "TRIM: %.2f      ", data->decoded_data.f32);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_BAROP:
         LOGI(TAG, "barop");
-        snprintf(lcd_buf, sizeof(lcd_buf), "BARO: %.2ftorr   ", data->parameters.barop);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "BARO: %.2ftorr   ", data->decoded_data.f32);
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
         break;
 
     case STATE_INPUT_SWITCHES:
         LOGI(TAG, "input switch");
-        snprintf(lcd_buf, sizeof(lcd_buf), "IG%d AT%d TM%d RM%d ",
-                 data->status0.ignition, data->status0.auto_trans, data->status0.test_mode, data->status0.read_mode);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
-        snprintf(lcd_buf, sizeof(lcd_buf), "NT%d PK%d CA%d     ",
-                 data->status0.neutral, data->status0.park, data->status0.california);
-        lcd_set_cursor(0, 1);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "IG%d AT%d TM%d RM%d ",
+                 data->decoded_data.in_sw.ignition, 
+                 data->decoded_data.in_sw.auto_trans,
+                 data->decoded_data.in_sw.test_mode,
+                 data->decoded_data.in_sw.read_mode
+        );
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
+        snprintf(buf, sizeof(buf), "NT%d PK%d CA%d     ",
+                 data->decoded_data.in_sw.neutral,
+                 data->decoded_data.in_sw.park,
+                 data->decoded_data.in_sw.california
+        );
+        hd44780_set_cursor(0, 1);
+        hd44780_print(buf);
         break;
 
     case STATE_INOUT_SWITCHES:
         LOGI(TAG, "io switch");
-        snprintf(lcd_buf, sizeof(lcd_buf), "ID%d AC%d AR%d RF%d ",
-                 data->status1.idle_sw, data->status1.ac_sw, data->status1.ac_relay, data->status1.rad_fan);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
-        snprintf(lcd_buf, sizeof(lcd_buf), "FP%d CN%d KS%d PX%d ",
-                 data->status1.fuel_pump, data->status1.purge_valve, data->status1.pinging, data->status1.press_exch);
-        lcd_set_cursor(0, 1);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "ID%d AC%d AR%d RF%d ",
+                 data->decoded_data.io_sw.idle_sw,
+                 data->decoded_data.io_sw.ac_sw,
+                 data->decoded_data.io_sw.ac_relay,
+                 data->decoded_data.io_sw.rad_fan
+        );
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
+        snprintf(buf, sizeof(buf), "FP%d CN%d KS%d PX%d ",
+                 data->decoded_data.io_sw.fuel_pump,
+                 data->decoded_data.io_sw.purge_valve,
+                 data->decoded_data.io_sw.pinging,
+                 data->decoded_data.io_sw.press_exch
+        );
+        hd44780_set_cursor(0, 1);
+        hd44780_print(buf);
         break;
 
     case STATE_STORED_CODE_ONE:
     case STATE_ACTIVE_CODE_ONE:
         LOGI(TAG, "code 1");
-        snprintf(lcd_buf, sizeof(lcd_buf), "11%d 12%d 13%d 14%d ",
-                 data->status2.crank, data->status2.starter, data->status2.cam, data->status2.inj_1);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
-        snprintf(lcd_buf, sizeof(lcd_buf), "15%d 16%d 17%d     ",
-                 data->status2.inj_2, data->status2.inj_3, data->status2.inj_4);
-        lcd_set_cursor(0, 1);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "11%d 12%d 13%d 14%d ",
+                 data->decoded_data.tc_one.crank,
+                 data->decoded_data.tc_one.starter,
+                 data->decoded_data.tc_one.cam,
+                 data->decoded_data.tc_one.inj_1
+        );
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
+        snprintf(buf, sizeof(buf), "15%d 16%d 17%d     ",
+                 data->decoded_data.tc_one.inj_2,
+                 data->decoded_data.tc_one.inj_3,
+                 data->decoded_data.tc_one.inj_4
+        );
+        hd44780_set_cursor(0, 1);
+        hd44780_print(buf);
         break;
 
     case STATE_STORED_CODE_TWO:
     case STATE_ACTIVE_CODE_TWO:
         LOGI(TAG, "code 2");
-        snprintf(lcd_buf, sizeof(lcd_buf), "21%d 22%d 23%d 24%d ",
-                 data->status3.temp, data->status3.knock, data->status3.maf, data->status3.iacv);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
-        snprintf(lcd_buf, sizeof(lcd_buf), "31%d 32%d 33%d 35%d ",
-                 data->status3.tps, data->status3.oxygen, data->status3.vss, data->status3.purge);
-        lcd_set_cursor(0, 1);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "21%d 22%d 23%d 24%d ",
+                 data->decoded_data.tc_two.temp,
+                 data->decoded_data.tc_two.knock,
+                 data->decoded_data.tc_two.maf,
+                 data->decoded_data.tc_two.iacv
+        );
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
+        snprintf(buf, sizeof(buf), "31%d 32%d 33%d 35%d ",
+                 data->decoded_data.tc_two.tps,
+                 data->decoded_data.tc_two.oxygen,
+                 data->decoded_data.tc_two.vss,
+                 data->decoded_data.tc_two.purge
+        );
+        hd44780_set_cursor(0, 1);
+        hd44780_print(buf);
         break;
 
     case STATE_STORED_CODE_THREE:
     case STATE_ACTIVE_CODE_THREE:
         LOGI(TAG, "code 3");
-        snprintf(lcd_buf, sizeof(lcd_buf), "41%d 42%d 44%d 45%d ",
-                 data->status4.fuel_trim, data->status4.idle_sw, data->status4.wgc, data->status4.baro);
-        lcd_set_cursor(0, 0);
-        lcd_print(lcd_buf);
-        snprintf(lcd_buf, sizeof(lcd_buf), "49%d 51%d 52%d     ",
-                 data->status4.wrong_maf, data->status4.neutral_sw, data->status4.parking_sw);
-        lcd_set_cursor(0, 1);
-        lcd_print(lcd_buf);
+        snprintf(buf, sizeof(buf), "41%d 42%d 44%d 45%d ",
+                 data->decoded_data.tc_three.fuel_trim,
+                 data->decoded_data.tc_three.idle_sw,
+                 data->decoded_data.tc_three.wgc,
+                 data->decoded_data.tc_three.baro
+        );
+        hd44780_set_cursor(0, 0);
+        hd44780_print(buf);
+        snprintf(buf, sizeof(buf), "49%d 51%d 52%d     ",
+                 data->decoded_data.tc_three.wrong_maf,
+                 data->decoded_data.tc_three.neutral_sw,
+                 data->decoded_data.tc_three.parking_sw
+        );
+        hd44780_set_cursor(0, 1);
+        hd44780_print(buf);
         break;
     }
 }

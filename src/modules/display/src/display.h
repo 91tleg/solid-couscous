@@ -1,15 +1,15 @@
 #ifndef LCD_H
 #define LCD_H
 
-#include "state_defs.h"
+struct fsm_data;
 
 /**
- * @brief Prints the current state to the lcd display.
+ * @brief Prints the current state to the display.
  *
- * Updates the lcd contents based on the provided state machine data and current state.
+ * Updates the display based on the provided current state and its data.
  *
- * @param data Pointer to the state_machine_data struct containing current state info.
+ * @param data Pointer to the fsm_data struct containing current state info.
  */
-void lcd_print_state(struct state_machine_data *data);
+void display_print_state(struct fsm_data *data);
 
 #endif // LCD_H
