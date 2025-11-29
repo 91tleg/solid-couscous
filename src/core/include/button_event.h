@@ -1,0 +1,12 @@
+#ifndef BUTTON_EVENT_H
+#define BUTTON_EVENT_H
+
+typedef enum
+{
+    BUTTON_EVENT_SINGLE_PRESS,
+    BUTTON_EVENT_LONG_PRESS,
+    BUTTON_EVENT_DOUBLE_PRESS,
+    BUTTON_EVENT_NONE,
+} button_event_e;
+
+#endif // BUTTON_EVENT_H
