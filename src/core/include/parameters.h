@@ -120,15 +120,16 @@ struct trouble_code_three
 
 union param_type
 {
-    float f;
+    uint8_t u8;
+    int8_t i8;
     uint16_t u16;
     int16_t i16;
-    uint8_t u8;
+    float f32;
     struct input_switches in_sw;
     struct io_switches io_sw;
     struct trouble_code_one tc_one;
     struct trouble_code_two tc_two;
     struct trouble_code_three tc_three;
-};
+}
 
 #endif // PARAMETERS_H
