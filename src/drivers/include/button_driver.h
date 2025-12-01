@@ -1,5 +1,5 @@
-#ifndef BUTTON_H
-#define BUTTON_H
+#ifndef BUTTON_DRIVER_H
+#define BUTTON_DRIVER_H
 
 #include <stdint.h>
 
@@ -23,4 +23,4 @@ void button_driver_init(QueueHandle_t isr_queue);
  */
 int button_driver_read(void);
 
-#endif // BUTTON_H
+#endif // BUTTON_DRIVER_H
