@@ -1,47 +1,59 @@
 #include "button_task.h"
+#include "button_driver.h"
 #include "button.h"
-#include "core/assert/assert_handler.h"
-#include "core/log/log.h"
+#include "button_event.h"
+#include "assert_handler.h"
+#include "log.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 #include <freertos/task.h>
 
-#define TAG "ButtonTask"
+#define TAG             "ButtonTask"
+#define TASK_STACK_SIZE (2048U)
 
-static QueueHandle_t event_queue = NULL;
+static StaticTask_t button_task_tcb;
+static StackType_t button_task_stack[TASK_STACK_SIZE];
+static TaskHandle_t button_task_handle = NULL;
 
-void button_task_init(void)
+static Queuehandle_t button_isr_queue = NULL;
+static QueueHandle_t button_event_queue = NULL;
+
+
+static void button_task(void *parameters)
 {
-    event_queue = xQueueCreate(10, sizeof(state_event_e));
-    ASSERT(event_queue != NULL);
-    LOGI(TAG, "Event queue initialized");
-
-    BaseType_t res = xTaskCreate(
-        button_task,
-        "ButtonTask",
-        2048,
-        NULL,
-        3,
-        NULL
-    );
-    ASSERT(res == pdPASS);
-    LOGI(TAG, "Button task started");
-}
-
-QueueHandle_t button_get_event_queue(void) 
-{
-    return event_queue;
-}
-
-void button_task(void *parameters)
-{
-    state_event_e event;
+    struct button_isr raw;
+    button_event_e evt;
 
     for (;;)
     {
-        event = read_state_event();
-        if (event != STATE_EVENT_NONE)
+        // Will block until the ISR pushes an event
+        xQueueReceive(button_isr_queue, &raw, portMAX_DELAY);
+
+        evt = button_process_event(raw.level, raw.timestamp_us);
+        if (evt != BUTTON_EVENT_NONE)
         {
-            xQueueSend(event_queue, &event, portMAX_DELAY);
+            if (xQueueSend(button_event_queue, &evt, 0) != pdPASS)
+            {
+                LOGW(TAG, "Event queue full, dropping event");
+            }
         }
-        vTaskDelay(pdMS_TO_TICKS(10));
     }
+}
+
+void button_task_init(QueueHandle_t isr_q, 
+                      QueueHandle_t event_q)
+{
+    button_isr_queue = isr_q;
+    button_event_queue = event_q;
+
+    button_task_handle = xTaskCreateStatic(
+        button_task,
+        TAG,
+        TASK_STACK_SIZE,
+        NULL,
+        3,
+        button_task_stack,
+        &button_task_tcb
+    );
+    LOGI(TAG, "Task started");
 }
