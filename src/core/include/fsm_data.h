@@ -8,8 +8,12 @@
 struct fsm_data
 {
     fsm_state_e state;
-    union param_type decoded_data;
-    uint8_t romid[3];
+    struct ecu_params params;
+    struct input_switches in_sw;
+    struct io_switches io_sw;
+    struct trouble_code_one tc1;
+    struct trouble_code_two tc2;
+    struct trouble_code_three tc3;
 };
 
 #endif // FSM_DATA_H
