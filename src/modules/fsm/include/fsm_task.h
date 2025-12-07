@@ -1,29 +1,9 @@
-#ifndef STATE_MACHINE_TASK_H
-#define STATE_MACHINE_TASK_H
+#ifndef FSM_TASK_H
+#define FSM_TASK_H
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/queue.h>
+typedef struct QueueDefinition *QueueHandle_t;
+typedef struct tskTaskControlBlock *TaskHandle_t
 
-/**
- * @brief Initializes queue and task.
- */
-void state_machine_task_init(void);
+void fsm_task_init(QueueHandle_t btn_evt_q, TaskHandle_t uart_task_h);
 
-/**
- * @brief Retrieves the lcd queue handle used for communication between tasks.
- *
- * @return QueueHandle_t Handle to the lcd queue.
- */
-QueueHandle_t state_machine_get_lcd_queue(void);
-
-/**
- * @brief State machine task for managing system states.
- *
- * This function should be run as a FreeRTOS task. It handles
- * transitions and actions based on system events.
- *
- * @param parameters Pointer to task-specific parameters (unused).
- */
-void state_machine_task(void *parameters);
-
-#endif // STATE_MACHINE_TASK_H
+#endif // FSM_TASK_H

@@ -1,62 +1,54 @@
-#include "state_machine_task.h"
-#include "state_machine.h"
-#include "modules/button/button_task.h"
-#include "core/assert/assert_handler.h"
-#include "core/log/log.h"
-#include "state_defs.h"
+#include "fsm_task.h"
+#include "fsm.h"
+#include "fsm_states.h"
+#include "button_event.h"
+#include "log.h"
+#include <stdint.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 #include <freertos/task.h>
 
-#define TAG "StateMachineTask"
+#define TAG             "FsmTask"
+#define TASK_STACK_SIZE (2048U)
 
-static QueueHandle_t lcd_queue = NULL;
+static StaticTask_t fsm_task_tcb;
+static StackType_t fsm_task_stack[TASK_STACK_SIZE];
+static QueueHandle_t button_event_queue;
+static TaskHandle_t uart_task_handle;
 
-static inline state_event_e process_input(void)
+static void fsm_task(void *parameters)
 {
-    state_event_e received_event;
-    QueueHandle_t event_queue = button_get_event_queue();
-    if (xQueueReceive(event_queue, &received_event, pdMS_TO_TICKS(0)) == pdPASS)
-    {
-        return received_event;
-    }
-    return STATE_EVENT_NONE;
-}
-
-void state_machine_task_init(void)
-{
-    lcd_queue = xQueueCreate(26, sizeof(struct state_machine_data));
-    ASSERT(lcd_queue != NULL);
-    LOGI(TAG, "Lcd queue initialized");
-
-    BaseType_t res = xTaskCreate(
-        state_machine_task,
-        "State Machine Task",
-        4096,
-        NULL,
-        2,
-        NULL
-    );
-    ASSERT(res == pdPASS);
-    LOGI(TAG, "State machine task started");
-}
-
-QueueHandle_t state_machine_get_lcd_queue(void)
-{
-    return lcd_queue;
-}
-
-void state_machine_task(void *parameters)
-{
-    static struct state_machine_data data;
-    state_machine_data_init(&data);
+    fsm_state_e state = STATE_ROMID;
+    button_event_e next_event;
 
     for (;;)
     {
-        state_event_e next_event = process_input();
-        process_event(&data, next_event);
-        if (next_event != STATE_EVENT_NONE)
+        // Block until new event
+        if (xQueueReceive(button_event_queue, &next_event, portMAX_DELAY))
         {
-            xQueueSend(lcd_queue, &data, portMAX_DELAY);
+            fsm_process_event(&state, next_event);
+            // Notify uart task of state change
+            xTaskNotify(uart_task_handle,
+                        (uint8_t)state,
+                        eSetValueWithOverwrite);
         }
-        vTaskDelay(pdMS_TO_TICKS(200));
+        vTaskDelay(pdTICKS_TO_MS(10));
     }
+}
+
+void fsm_task_init(QueueHandle_t btn_evt_q, TaskHandle_t uart_task_h)
+{
+    button_event_queue = btn_evt_q;
+    uart_task_handle = uart_task_h;
+
+    xTaskCreateStatic(
+        fsm_task,
+        TAG,
+        TASK_STACK_SIZE,
+        NULL,
+        3,
+        fsm_task_stack,
+        &fsm_task_tcb
+    );
+    LOGI(TAG, "Task started");
 }
