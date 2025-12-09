@@ -1,117 +1,109 @@
 #include "ssm1.h"
-#include "drivers/uart/uart.h"
-#include "defines.h"
+#include <string.h>
 
 #define GET_MSB(addr) ((uint8_t)(((uint16_t)(addr)) >> 8U))
 #define GET_LSB(addr) ((uint8_t)((uint16_t)(addr) & 0xFFU))
 
-static void stop_read(void)
-{
-    static const uint8_t stop_command[4] = {0x12, 0x00, 0x00, 0x00};
-    send_bytes(stop_command, sizeof(stop_command));
-}
-
-void read_romid(struct romid_ctx *ctx)
+void ssm1_get_romid_command(struct romid_ctx *ctx, uint8_t *cmd)
 {
     static const uint8_t cmds[2][4] = {
         {0x78, 0xFF, 0xFE, 0x00},
-        {0x00, 0xFF, 0xFF, 0x00}};
+        {0x00, 0xFF, 0xFF, 0x00}
+    };
 
-    if (ctx->done)
-    {
-        return;
-    }
-
-    send_bytes(cmds[ctx->cmd_index], sizeof(cmds[ctx->cmd_index]));
+    memcpy(cmd, cmds[ctx->cmd_index], sizeof(cmds[ctx->cmd_index]));
     ctx->cmd_index ^= 1;
-
-    uint8_t buf[4];
-    int len = read_bytes(buf, sizeof(buf));
-
-    for (int i = 0; i < len; i++)
-    {
-        switch (ctx->state)
-        {
-        case ROMID_WAIT_FF:
-            if (buf[i] == 0xFF)
-            {
-                ctx->state = ROMID_WAIT_FE;
-            }
-            break;
-
-        case ROMID_WAIT_FE:
-            ctx->state = (buf[i] == 0xFE) ? ROMID_ACCEPT_ANY : ROMID_WAIT_FF;
-            break;
-
-        case ROMID_ACCEPT_ANY:
-            ctx->state = ROMID_GOT_BYTE1;
-            break;
-
-        case ROMID_GOT_BYTE1:
-            ctx->romid_out[0] = buf[i];
-            ctx->state = ROMID_GOT_BYTE2;
-            break;
-
-        case ROMID_GOT_BYTE2:
-            ctx->romid_out[1] = buf[i];
-            ctx->state = ROMID_GOT_BYTE3;
-            break;
-
-        case ROMID_GOT_BYTE3:
-            ctx->romid_out[2] = buf[i];
-            stop_read();
-            ctx->done = true;
-            ctx->sent = false;
-            break;
-        }
-        if (ctx->done)
-        {
-            break;
-        }
-    }
 }
 
-void read_data_from_address(struct read_ctx *ctx)
+void ssm1_get_read_command(struct read_ctx *ctx, uint8_t *cmd)
 {
-    uint8_t read_command[4] = {0x78, GET_MSB(ctx->addr), GET_LSB(ctx->addr), 0x00};
+    const uint8_t read_command[4] = {
+        0x78, GET_MSB(ctx->addr), GET_LSB(ctx->addr), 0x00
+    };
+    memcpy(cmd, read_command, sizeof(read_command));
+}
 
-    if (!ctx->sent)
-    {
-        send_bytes(read_command, sizeof(read_command));
-        ctx->sent = true;
-        ctx->read_state = READ_WAIT_MSB;
-    }
+void ssm1_get_clear_command(struct read_ctx *ctx, uint8_t *cmd)
+{
+    const uint8_t clear_command[4] = {
+        0xAA, GET_MSB(ctx->addr), GET_LSB(ctx->addr), 0x00
+    };
+    memcpy(cmd, clear_command, sizeof(clear_command));
+}
 
-    uint8_t buf[4];
-    int len = read_bytes(buf, sizeof(buf));
+size_t ssm1_parser_feed(struct ssm1_parser *p,
+                        const uint8_t *buf,
+                        size_t len,
+                        struct parsed_msg *out_msgs,
+                        size_t out_cap)
+{
+    size_t out_count = 0;
 
-    for (int i = 0; i < len; i++)
+    for (size_t i = 0; i < len; ++i)
     {
         uint8_t b = buf[i];
 
-        switch (ctx->read_state)
+        switch (p->state)
         {
-        case READ_WAIT_MSB:
-            if (b == read_command[1])
-            {
-                ctx->read_state = READ_WAIT_LSB;
+        case P_WAIT:
+            if (b == 0xFF) {
+                p->state = P_MAYBE_ROMID_FE;
+            } else {
+                p->tmp_msb = b;
+                p->state = P_READ_LSB;
             }
             break;
 
-        case READ_WAIT_LSB:
-            ctx->read_state = (b == read_command[2]) ? READ_WAIT_DATA : READ_WAIT_MSB;
+        case P_MAYBE_ROMID_FE:
+            if (b == 0xFE) {
+                p->state = P_ROMID_SKIP;
+            } else if (b == 0xFF) {
+                // Keep waiting for 0xFE
+            } else {
+                // Fallback to read frame
+                p->tmp_msb = 0xFF;
+                p->tmp_lsb = b;
+                p->state = P_READ_DATA;
+            }
             break;
 
-        case READ_WAIT_DATA:
-            ctx->data = b;
-            ctx->read_state = READ_WAIT_MSB;
+        case P_ROMID_SKIP:
+            p->rom_index = 0;
+            p->state = P_ROMID_BYTES;
+            break;
+
+        case P_ROMID_BYTES:
+            p->rom_buf[p->rom_index++] = b;
+            if (p->rom_index >= 3) {
+                if (out_count < out_cap) {
+                    struct parsed_msg *m = &out_msgs[out_count++];
+                    m->type = MSG_TYPE_ROMID;
+                    memcpy(m->u.rom.romid, p->rom_buf, 3);
+                }
+                p->state = P_WAIT;
+            }
+            break;
+
+        case P_READ_LSB:
+            p->tmp_lsb = b;
+            p->state = P_READ_DATA;
+            break;
+
+        case P_READ_DATA:
+            if (out_count < out_cap) {
+                struct parsed_msg *m = &out_msgs[out_count++];
+                m->type = MSG_TYPE_READ;
+                m->u.read.addr  = ((uint16_t)p->tmp_msb << 8) | p->tmp_lsb;
+                m->u.read.value = b;
+            }
+            p->state = P_WAIT;
+            break;
+
+        default:
+            p->state = P_WAIT;
             break;
         }
     }
-}
 
-void send_clear_command(struct read_ctx *ctx)
-{
-    uint8_t clear_command[4] = {0xAA, GET_MSB(ctx->addr), GET_LSB(ctx->addr), 0x00};
-    send_bytes(clear_command, sizeof(clear_command));
+    return out_count;
 }
