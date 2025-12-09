@@ -13,11 +13,8 @@
 
 static StaticTask_t button_task_tcb;
 static StackType_t button_task_stack[TASK_STACK_SIZE];
-static TaskHandle_t button_task_handle = NULL;
-
-static Queuehandle_t button_isr_queue = NULL;
+static QueueHandle_t button_isr_queue = NULL;
 static QueueHandle_t button_event_queue = NULL;
-
 
 static void button_task(void *parameters)
 {
@@ -40,13 +37,12 @@ static void button_task(void *parameters)
     }
 }
 
-void button_task_init(QueueHandle_t isr_q, 
-                      QueueHandle_t event_q)
+void button_task_init(QueueHandle_t isr_q, QueueHandle_t event_q)
 {
     button_isr_queue = isr_q;
     button_event_queue = event_q;
 
-    button_task_handle = xTaskCreateStatic(
+    xTaskCreateStatic(
         button_task,
         TAG,
         TASK_STACK_SIZE,
