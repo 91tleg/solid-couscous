@@ -12,9 +12,7 @@
 
 static StaticTask_t display_task_tcb;
 static StackType_t display_task_stack[TASK_STACK_SIZE];
-static TaskHandle_t display_task_handle = NULL;
-
-static Queuehandle_t display_queue = NULL;
+static QueueHandle_t display_queue = NULL;
 
 static void display_task(void *parameters)
 {
@@ -26,7 +24,6 @@ static void display_task(void *parameters)
         {
             display_print_state(&sm_data);
         }
-        vTaskDelay(pdMS_TO_TICKS(90));
     }
 }
 

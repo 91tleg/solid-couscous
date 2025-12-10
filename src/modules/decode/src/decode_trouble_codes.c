@@ -1,8 +1,8 @@
 #include "decode_trouble_codes.h"
 
-struct input_swicthes decode_input_switches(uint8_t value)
+struct input_switches decode_input_switches(uint8_t value)
 {
-    struct input_swicthes dtc;
+    struct input_switches dtc;
     __asm__ volatile(
         "mov a2, %7\n"
         "movi a4, 1\n"
@@ -35,17 +35,17 @@ struct input_swicthes decode_input_switches(uint8_t value)
         "and a3, a3, a4\n"
         "mov %6, a3\n"
         : "=r"(dtc.ignition), "=r"(dtc.auto_trans),
-          "=r"(dtc.in_sw.test_mode), "=r"(dtc.in_sw.read_mode),
-          "=r"(dtc.in_sw.neutral), "=r"(dtc.in_sw.park),
-          "=r"(dtc.in_sw.california)
+          "=r"(dtc.test_mode), "=r"(dtc.read_mode),
+          "=r"(dtc.neutral), "=r"(dtc.park),
+          "=r"(dtc.california)
         : "r"(value)
         : "a2", "a3", "a4");
     return dtc;
 }
 
-struct io_swicthes decode_io_switches(uint8_t value)
+struct io_switches decode_io_switches(uint8_t value)
 {
-    struct io_swicthes dtc;
+    struct io_switches dtc;
     __asm__ volatile(
         "mov a2, %8\n"
         "movi a4, 1\n"

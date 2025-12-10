@@ -1,4 +1,4 @@
-#include "deocde_parameters.h"
+#include "decode_parameters.h"
 #include <esp_attr.h>
 
 const uint8_t coolant_lookup_table[] __attribute__((section(".rodata"))) =
@@ -25,7 +25,7 @@ const uint8_t coolant_lookup_table[] __attribute__((section(".rodata"))) =
 	// the last 29 values need to be inverted
 };
 
-float IRAM_ATTR recipsf2(float a)
+static inline float IRAM_ATTR recipsf2(float a)
 {
     float result;
     __asm__ volatile(
