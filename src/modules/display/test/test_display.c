@@ -1,7 +1,7 @@
 #include <unity.h>
 #include <stdio.h>
 #include "fsm_data.h"
-#include "src/display.h"
+#include "../src/display.h"
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -34,7 +34,7 @@ void test_empty_romid_display(void)
 
     display_print_state(&data);
 
-    TEST_ASSERT_EQUAL_STRING("ROM ID: --.--.--   ", line0);
+    TEST_ASSERT_EQUAL_STRING("ROM ID: --.--.--    ", line0);
     TEST_ASSERT_EQUAL_STRING("                    ", line1);
 }
 
@@ -42,9 +42,9 @@ void test_romid_display(void)
 {
     struct fsm_data data = {0};
     data.state = STATE_ROMID;
-    data.romid[0] = 0x12;
-    data.romid[1] = 0x34;
-    data.romid[2] = 0x56;
+    data.params.romid[0] = 0x12;
+    data.params.romid[1] = 0x34;
+    data.params.romid[2] = 0x56;
 
     display_print_state(&data);
 
@@ -52,13 +52,31 @@ void test_romid_display(void)
     TEST_ASSERT_EQUAL_STRING("                    ", line1);
 }
 
+void test_romid_clear_row1(void)
+{
+    struct fsm_data data = {0};
+    data.state = STATE_ROMID;
+    display_print_state(&data);
+
+    TEST_ASSERT_EQUAL_STRING("                    ", line1);
+
+    data.state = STATE_ACTIVE_CODE_ONE;
+    display_print_state(&data);
+
+    data.state = STATE_ROMID;
+    display_print_state(&data);
+
+    TEST_ASSERT_EQUAL_STRING("                    ", line1); 
+
+}
+
 void test_vehicle_speed_display(void)
 {
     struct fsm_data data = {0};
     data.state = STATE_VEHICLE_SPEED;
-    data.decoded_data.u8 = 55;
+    data.params.vehicle_speed = 55;
 
-    lcd_print_state(&data);
+    display_print_state(&data);
 
     TEST_ASSERT_EQUAL_STRING("VSPD: 55mph         ", line0);
 }

@@ -2,6 +2,7 @@
 
 void test_empty_romid_display(void);
 void test_romid_display(void);
+void test_romid_clear_row1(void);
 void test_vehicle_speed_display(void);
 
 #if defined(ESP_PLATFORM)
@@ -14,6 +15,7 @@ void test_task(void *pvParameters)
 
     RUN_TEST(test_empty_romid_display);
     RUN_TEST(test_romid_display);
+    RUN_TEST(test_romid_clear_row1);
     RUN_TEST(test_vehicle_speed_display);
 
     UNITY_END();
@@ -33,6 +35,7 @@ int main(void)
 
     RUN_TEST(test_empty_romid_display);
     RUN_TEST(test_romid_display);
+    RUN_TEST(test_romid_clear_row1);
     RUN_TEST(test_vehicle_speed_display);
 
     return UNITY_END();
