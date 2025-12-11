@@ -9,6 +9,7 @@ include_directories(
     ${UNITY_PATH}
     ${CMAKE_SOURCE_DIR}/../../../core/include
     ${CMAKE_SOURCE_DIR}/../src
+    ${CMAKE_SOURCE_DIR}/../../../drivers/include
 )
 
 add_executable(unit_tests
