@@ -48,7 +48,7 @@ void test_decode_throttle_percentage(void)
 
 void test_decode_manifold_pressure(void)
 {
-    TEST_ASSERT_FLOAT_WITHIN(0.5f, -41.f, decode_manifold_pressure(0))
+    TEST_ASSERT_FLOAT_WITHIN(0.5f, -41.f, decode_manifold_pressure(0));
     TEST_ASSERT_FLOAT_WITHIN(0.5f, 18.f, decode_manifold_pressure(255));
 }
 
