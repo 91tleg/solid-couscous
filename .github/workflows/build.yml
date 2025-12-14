@@ -18,9 +18,7 @@ jobs:
         python-version: '3.11'
 
     - name: Install PlatformIO
-      run: |
-        pip install platformio
+      run: pip install platformio
 
-    - name: Build Firmware
-      run: |
-        pio run -e esp32dev
+    - name: Run build script
+      run: bash scripts/build_esp32dev.sh
