@@ -35,7 +35,7 @@ void uart_driver_init(void)
         UART_NUM,
         UART_RX_BUF_SIZE,
         UART_TX_BUF_SIZE,
-        20,
+        40,
         &uart_isr_queue,
         0
     );
@@ -49,19 +49,15 @@ bool send_bytes(const uint8_t *data, uint8_t len)
     return written == len;
 }
 
-int read_bytes(uint8_t *buf, uint32_t max_len, uint32_t timeout)
+int uart_read_from_isr(uint8_t *buf, uint32_t max_len, uint32_t timeout)
 {
     uart_event_t event;
-
-    if (!xQueueReceive(uart_isr_queue, &event, (TickType_t)timeout)
-        || event.type != UART_DATA)
+    if ((xQueueReceive(uart_isr_queue, &event, timeout) != pdTRUE)
+        || (event.type != UART_DATA))
     {
-        return 0;  // no data
+        return 0;
     }
 
-    uint32_t to_read = event.size;
-    if (to_read > max_len) { to_read = max_len; }
-    int len = uart_read_bytes(UART_NUM, buf, to_read, 0);
-
-    return len;
+    int len = uart_read_bytes(UART_NUM, buf, max_len, 0);
+    return (len > 0) ? len : 0;
 }
