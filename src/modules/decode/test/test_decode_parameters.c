@@ -48,8 +48,8 @@ void test_decode_throttle_percentage(void)
 
 void test_decode_manifold_pressure(void)
 {
-    TEST_ASSERT_FLOAT_WITHIN(0.5f, -41.f, decode_manifold_pressure(0));
-    TEST_ASSERT_FLOAT_WITHIN(0.5f, 18.f, decode_manifold_pressure(255));
+    TEST_ASSERT_FLOAT_WITHIN(0.1f, -41.7f, decode_manifold_pressure(0));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 18.02f, decode_manifold_pressure(255));
 }
 
 void test_decode_boost_control_duty_cycle(void)
@@ -73,7 +73,7 @@ void test_decode_engine_load(void)
 void test_decode_injector_pulse_width(void)
 {
     TEST_ASSERT_EQUAL_FLOAT(0.f, decode_injector_pulse_width(0));
-    TEST_ASSERT_FLOAT_WITHIN(0.5f, 32.5f, decode_injector_pulse_width(255));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 32.64f, decode_injector_pulse_width(255));
     
 }
 
@@ -98,11 +98,11 @@ void test_decode_timing_correction(void)
 void test_decode_fuel_trim(void)
 {
     TEST_ASSERT_EQUAL_FLOAT(-100.f, decode_fuel_trim(0));
-    TEST_ASSERT_FLOAT_WITHIN(0.5f, 99.f, decode_fuel_trim(255));
+    TEST_ASSERT_FLOAT_WITHIN(0.05f, 99.2f, decode_fuel_trim(255));
 }
 
 void test_decode_atmosphere_pressure(void)
 {
-    TEST_ASSERT_EQUAL_FLOAT(930.f, decode_atmosphere_pressure(0));
-    TEST_ASSERT_FLOAT_WITHIN(0.5f, 140.5f, decode_atmosphere_pressure(255));
+    TEST_ASSERT_EQUAL_FLOAT(500.f, decode_atmosphere_pressure(0));
+    TEST_ASSERT_EQUAL_FLOAT(818.75f, decode_atmosphere_pressure(255));
 }
