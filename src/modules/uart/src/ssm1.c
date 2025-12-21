@@ -23,6 +23,14 @@ void ssm1_get_read_command(struct read_ctx *ctx, uint8_t *cmd)
     memcpy(cmd, read_command, sizeof(read_command));
 }
 
+void ssm1_get_stop_command(struct read_ctx *ctx, uint8_t *cmd)
+{
+    const uint8_t stop_command[4] = {
+        0x12, GET_MSB(ctx->addr), GET_LSB(ctx->addr), 0x00
+    };
+    memcpy(cmd, stop_command, sizeof(stop_command));
+}
+
 void ssm1_get_clear_command(struct read_ctx *ctx, uint8_t *cmd)
 {
     const uint8_t clear_command[4] = {
@@ -46,25 +54,11 @@ size_t ssm1_parser_feed(struct ssm1_parser *p,
         switch (p->state)
         {
         case P_WAIT:
-            if (b == 0xFF) {
-                p->state = P_MAYBE_ROMID_FE;
-            } else {
-                p->tmp_msb = b;
-                p->state = P_READ_LSB;
-            }
+            p->state = (b == 0xFF) ? P_MAYBE_ROMID_FE : P_READ_LSB; 
             break;
 
         case P_MAYBE_ROMID_FE:
-            if (b == 0xFE) {
-                p->state = P_ROMID_SKIP;
-            } else if (b == 0xFF) {
-                // Keep waiting for 0xFE
-            } else {
-                // Fallback to read frame
-                p->tmp_msb = 0xFF;
-                p->tmp_lsb = b;
-                p->state = P_READ_DATA;
-            }
+            p->state = (b == 0xFE) ? P_ROMID_SKIP : P_READ_DATA;
             break;
 
         case P_ROMID_SKIP:
@@ -74,26 +68,23 @@ size_t ssm1_parser_feed(struct ssm1_parser *p,
 
         case P_ROMID_BYTES:
             p->rom_buf[p->rom_index++] = b;
-            if (p->rom_index >= 3) {
-                if (out_count < out_cap) {
-                    struct parsed_msg *m = &out_msgs[out_count++];
-                    m->type = MSG_TYPE_ROMID;
-                    memcpy(m->u.rom.romid, p->rom_buf, 3);
-                }
+            if (p->rom_index == 3)
+            {
+                out_msgs->type = MSG_TYPE_ROMID;
+                memcpy(out_msgs->u.rom.romid, p->rom_buf, 3);
                 p->state = P_WAIT;
             }
             break;
 
         case P_READ_LSB:
-            p->tmp_lsb = b;
             p->state = P_READ_DATA;
             break;
 
         case P_READ_DATA:
-            if (out_count < out_cap) {
+            if (out_count < out_cap)
+            {
                 struct parsed_msg *m = &out_msgs[out_count++];
                 m->type = MSG_TYPE_READ;
-                m->u.read.addr  = ((uint16_t)p->tmp_msb << 8) | p->tmp_lsb;
                 m->u.read.value = b;
             }
             p->state = P_WAIT;

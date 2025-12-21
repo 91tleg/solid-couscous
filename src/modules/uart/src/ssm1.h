@@ -3,7 +3,6 @@
 
 #include "fsm_states.h"
 #include <stdint.h>
-#include <stdbool.h>
 #include <stddef.h>
 
 typedef enum
@@ -45,14 +44,30 @@ struct parsed_msg
 {
     msg_type_e type;
     union {
-        struct { uint8_t romid[3]; } rom;              // MSG_TYPE_ROMID
-        struct { uint16_t addr; uint8_t value; } read; // MSG_TYPE_READ
+        struct { uint8_t romid[3]; } rom; // MSG_TYPE_ROMID
+        struct { uint8_t value; } read;   // MSG_TYPE_READ
     } u;
 };
 
 void ssm1_get_romid_command(struct romid_ctx *ctx, uint8_t *cmd);
 void ssm1_get_read_command(struct read_ctx *ctx, uint8_t *cmd);
+void ssm1_get_stop_command(struct read_ctx *ctx, uint8_t *cmd);
 void ssm1_get_clear_command(struct read_ctx *ctx, uint8_t *cmd);
+
+/**
+ * @brief Feed UART bytes into the SSM1 parser state machine.
+ *
+ * The parser maintains internal state between calls, allowing
+ * partial frames, stream data, or chunked input.
+ *
+ * @param p          Pointer to the parser state machine.
+ * @param buf        Pointer to the input byte buffer.
+ * @param len        Num of bytes available in @p buf.
+ * @param out_msgs   Array parsed messages is written to.
+ * @param out_cap    Num of messages @p out_msgs can hold.
+ *
+ * @return Num of parsed messages written to @p out_msgs.
+ */
 size_t ssm1_parser_feed(struct ssm1_parser *p,
                         const uint8_t *buf,
                         size_t len,
