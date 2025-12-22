@@ -1,25 +1,13 @@
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include "drivers/drivers_init.h"
-#include "core/log/log.h"
-#include "modules/button/button_task.h"
-#include "modules/state_machine/state_machine_task.h"
-#include "modules/lcd/lcd_task.h"
+#include "log.h"
+#include "app_init.h"
 
 #define TAG  "Main"
 
-#ifndef UNIT_TEST
+#if !defined(UNIT_TEST)
 void app_main(void)
 {
-    log_init();
     LOGI(TAG, "Starting application");
 
-    drivers_init();
-
-    button_task_init();
-    state_machine_task_init();
-    lcd_task_init();
-
-    LOGI(TAG, "Startup complete. Free heap: %u bytes", xPortGetFreeHeapSize());
+    app_init();
 }
 #endif  // UNIT_TEST
