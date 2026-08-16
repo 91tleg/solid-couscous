@@ -23,7 +23,7 @@ static void uart_task(void *parameters)
     uint8_t rxbuf[256] = {0};
     uint8_t cmd[4] = {0};
 
-    struct parser parser = {0};
+    protocol_parser_t parser = {0};
     struct romid_ctx romctx = {0};
     struct read_ctx  rctx  = {0};
 
