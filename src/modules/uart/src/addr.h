@@ -1,5 +1,6 @@
 #pragma once
 
+//#if defined(SSM1)
 #define BATTERY_VOLTAGE_ADDR            (0X1404U)
 #define VEHICLE_SPEED_ADDR              (0X154BU)
 #define ENGINE_SPEED_ADDR               (0X140BU)
@@ -24,3 +25,4 @@
 #define STORED_TROUBLE_CODE_ONE_ADDR    (0X1604U)
 #define STORED_TROUBLE_CODE_TWO_ADDR    (0X1605U)
 #define STORED_TROUBLE_CODE_THREE_ADDR  (0X1606U)
+//#endif
