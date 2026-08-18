@@ -8,31 +8,28 @@
 #include <freertos/queue.h>
 #include <freertos/task.h>
 
-#define TAG             "FsmTask"
-#define TASK_STACK_SIZE (2048U)
+#define TAG "FsmTask"
+#define TASK_STACK_SIZE (4096U)
 
 static StaticTask_t fsm_task_tcb;
 static StackType_t fsm_task_stack[TASK_STACK_SIZE];
-static QueueHandle_t button_event_queue;
-static TaskHandle_t uart_task_handle;
+static QueueHandle_t button_event_queue = NULL;
+static TaskHandle_t uart_task_handle = NULL;
 
 static void fsm_task(void *parameters)
 {
     fsm_state_e state = STATE_ROMID;
-    button_event_e next_event;
+    button_event_e next_event = BUTTON_EVENT_NONE;
 
     for (;;)
     {
-        // Block until new event
-        if (xQueueReceive(button_event_queue, &next_event, portMAX_DELAY))
-        {
-            fsm_process_event(&state, next_event);
-            // Notify uart task of state change
-            xTaskNotify(uart_task_handle,
-                        (uint8_t)state,
-                        eSetValueWithOverwrite);
-        }
-        vTaskDelay(pdTICKS_TO_MS(10));
+        xQueueReceive(button_event_queue, &next_event, portMAX_DELAY);
+
+        fsm_process_event(&state, next_event);
+
+        xTaskNotify(uart_task_handle,
+                    (uint32_t)state,
+                    eSetValueWithOverwrite);
     }
 }
 
@@ -46,7 +43,7 @@ void fsm_task_init(QueueHandle_t btn_evt_q, TaskHandle_t uart_task_h)
         TAG,
         TASK_STACK_SIZE,
         NULL,
-        3,
+        5,
         fsm_task_stack,
         &fsm_task_tcb
     );

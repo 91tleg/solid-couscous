@@ -20,10 +20,9 @@ static void display_task(void *parameters)
 
     for (;;)
     {
-        if (xQueueReceive(display_queue, &sm_data, portMAX_DELAY) == pdTRUE)
-        {
-            display_print_state(&sm_data);
-        }
+        xQueueReceive(display_queue, &sm_data, portMAX_DELAY);
+        display_print_state(&sm_data);
+        vTaskDelay(pdMS_TO_TICKS(40));
     }
 }
 
@@ -36,7 +35,7 @@ void display_task_init(QueueHandle_t display_q)
         TAG,
         TASK_STACK_SIZE,
         NULL,
-        1,
+        2,
         display_task_stack,
         &display_task_tcb
     );

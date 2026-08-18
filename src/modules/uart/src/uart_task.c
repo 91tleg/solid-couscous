@@ -1,10 +1,11 @@
 #include "uart_task.h"
 #include "fsm_states.h"
-#include "ssm1.h"
+#include "protocol.h"
 #include "addr_map.h"
 #include "log.h"
 #include "uart_data.h"
 #include "uart.h"
+#include "protocol.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
@@ -22,7 +23,7 @@ static void uart_task(void *parameters)
     uint8_t rxbuf[256] = {0};
     uint8_t cmd[4] = {0};
 
-    struct ssm1_parser parser = {0};
+    protocol_parser_t parser = {0};
     struct romid_ctx romctx = {0};
     struct read_ctx  rctx  = {0};
 
@@ -33,6 +34,7 @@ static void uart_task(void *parameters)
     bool romid_received = false;
     bool init_romid = false;
     uint32_t new_state = 0;
+    const protocol_api_t* proto = protocol_get_api();
 
     for (;;)
     {
@@ -40,7 +42,7 @@ static void uart_task(void *parameters)
         {
             xQueueSend(uart_data_queue, &out, 0);
             init_romid = true;
-            ssm1_get_romid_command(&romctx, cmd);
+            proto->get_romid_cmd(&romctx, cmd);
         }
 
         TickType_t now = xTaskGetTickCount();
@@ -54,14 +56,13 @@ static void uart_task(void *parameters)
         int len = uart_read_from_isr(rxbuf, sizeof(rxbuf), 1);
         if (len > 0)
         {
-            size_t count = ssm1_parser_feed(&parser, rxbuf, len, msgs, 32);
+            size_t count = proto->parser_feed(&parser, rxbuf, len, msgs, 32);
 
-            // Check first message for ROM ID
             if (msgs[0].type == MSG_TYPE_ROMID)
             {
                 romid_received = true;
                 rctx.addr = 0;
-                ssm1_get_stop_command(&rctx, cmd);
+                proto->get_stop_cmd(&rctx, cmd);
                 send_bytes(cmd, 4);
 
                 out.state = STATE_ROMID;
@@ -71,7 +72,6 @@ static void uart_task(void *parameters)
                 xQueueSend(uart_data_queue, &out, 0);
             }
 
-            // Process remaining messages (skip if ROM ID)
             for (size_t i = 0; i < count; ++i)
             {
                 struct parsed_msg *m = &msgs[i];
@@ -84,13 +84,13 @@ static void uart_task(void *parameters)
 
         if (xTaskNotifyWait(0, 0xFFFFFFFF, &new_state, 0) == pdPASS)
         {
-            ssm1_get_stop_command(&rctx, cmd);
+            proto->get_stop_cmd(&rctx, cmd);
             send_bytes(cmd, 4);
 
             rctx.state = (fsm_state_e)new_state;
             rctx.addr  = lookup_addr(rctx.state);
 
-            ssm1_get_read_command(&rctx, cmd);
+            proto->get_read_cmd(&rctx, cmd);
             send_bytes(cmd, 4);
         }
     }

@@ -2,6 +2,8 @@
 #define SSM1_H
 
 #include "fsm_states.h"
+#include "msg_types.h"
+#include "ctx.h"
 #include <stdint.h>
 #include <stddef.h>
 
@@ -14,39 +16,15 @@ typedef enum
     P_READ_MSB,       // collecting MSB of read frame
     P_READ_LSB,       // collecting LSB of read frame
     P_READ_DATA       // collecting DATA of read frame
-} parser_state_e;
+} ssm1_parser_state_e;
 
 struct ssm1_parser
 {
-    parser_state_e state;
+    ssm1_parser_state_e state;
     uint8_t rom_buf[3];
     uint8_t rom_index;
     uint8_t tmp_msb;
     uint8_t tmp_lsb;
-};
-
-struct romid_ctx {
-    uint8_t cmd_index;   // 0 or 1
-};
-
-struct read_ctx {
-    fsm_state_e state;
-    uint16_t addr;
-};
-
-typedef enum
-{
-    MSG_TYPE_ROMID,
-    MSG_TYPE_READ
-} msg_type_e;
-
-struct parsed_msg
-{
-    msg_type_e type;
-    union {
-        struct { uint8_t romid[3]; } rom; // MSG_TYPE_ROMID
-        struct { uint8_t value; } read;   // MSG_TYPE_READ
-    } u;
 };
 
 void ssm1_get_romid_command(struct romid_ctx *ctx, uint8_t *cmd);
